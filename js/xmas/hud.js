@@ -23,7 +23,7 @@ export class Hud {
         <div id="qc-whisper"></div>
         <div id="qc-answers"></div>
       </div>
-      <div id="hud-pausemenu" hidden><div class="pm"><h2>PAUSED</h2><button data-p="resume">▶ RESUME</button><button data-p="mute">🔈 SOUND: ON</button><button data-p="restart">↻ RESTART</button><button data-p="menu">🏠 MAIN MENU</button></div></div>
+      <div id="hud-pausemenu" hidden><div class="pm"><h2>PAUSED</h2><button data-p="resume">▶ RESUME</button><button data-p="music">🎵 CAROLS: ON</button><button data-p="mute">🔈 SOUND: ON</button><button data-p="restart">↻ RESTART</button><button data-p="menu">🏠 MAIN MENU</button></div></div>
       <div id="hud-result" hidden><div class="rs"><h1 id="rs-title"></h1><div id="rs-lines"></div><div class="rs-b"><button data-r="again">↻ PLAY AGAIN</button><button data-r="menu">🏠 MAIN MENU</button></div></div></div>`;
     document.body.appendChild(root);
     $('#hud-pause').addEventListener('click', () => onPause());
@@ -51,8 +51,9 @@ export class Hud {
   hideCard() { $('#quiz-card').hidden = true; this.cardPick = null; }
   pause(on, act) {
     const m = $('#hud-pausemenu'); m.hidden = !on; if (!on) return;
+    const mb = m.querySelector('[data-p="music"]'); if (mb && act.musicOn) mb.textContent = act.musicOn() ? '🎵 CAROLS: ON' : '🎵 CAROLS: OFF';
     m.onclick = (e) => { const b = e.target.closest('[data-p]'); if (!b) return; const k = b.dataset.p;
-      if (k === 'resume') $('#hud-pause').click(); else if (k === 'mute') { this.muted = !this.muted; act.mute(this.muted); b.textContent = this.muted ? '🔇 SOUND: OFF' : '🔈 SOUND: ON'; } else act[k](); };
+      if (k === 'resume') $('#hud-pause').click(); else if (k === 'music') { b.textContent = act.music() ? '🎵 CAROLS: ON' : '🎵 CAROLS: OFF'; } else if (k === 'mute') { this.muted = !this.muted; act.mute(this.muted); b.textContent = this.muted ? '🔇 SOUND: OFF' : '🔈 SOUND: ON'; } else act[k](); };
   }
   result(title, lines, act) {
     this.hideCard(); const r = $('#hud-result'); r.hidden = false; $('#rs-title').textContent = title;

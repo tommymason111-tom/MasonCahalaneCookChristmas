@@ -21,6 +21,7 @@ import { addChristmasFood, XMAS_SPREAD, SWEETS } from './xfood.js';
 import { Quiz } from './quiz.js';
 import { Hangry, Fling } from './games.js';
 import { Hud } from './hud.js';
+import { Carols } from './carols.js';
 
 addChristmasFood();
 // the family join the squad list, so they're built exactly like Ronnie Simulator's characters
@@ -88,6 +89,19 @@ FAMILY_IDS.filter(id => id !== ME).forEach((id, i) => {
   cast.push(c);
 });
 const who = (id) => cast.find(c => c.id === id) || null;
+// name tags over everyone's heads, edged in their team's colour (hidden while they're talking: the bubble has the name)
+for (const c of cast) {
+  const f = FAMILY[c.id], cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const g = cv.getContext('2d');
+  const col = f.team === 'host' ? '#e6b422' : TEAMS[f.team].color;
+  g.font = '900 34px Arial Black, Arial'; const w = Math.min(244, g.measureText(f.name).width + 40);
+  g.fillStyle = 'rgba(20,4,8,0.78)'; g.strokeStyle = col; g.lineWidth = 6; g.beginPath(); g.roundRect((256 - w) / 2, 8, w, 48, 24); g.fill(); g.stroke();
+  g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(f.name, 128, 33);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); tag.scale.set(0.42, 0.105, 1); tag.renderOrder = 11; tag.userData.live = true;
+  scene.add(tag); c.tag = tag;
+}
+const _tp = new THREE.Vector3();
+function placeTags() { for (const c of cast) { if (!c.tag) continue; c.headPos(_tp); const d = _tp.distanceTo(player.head); c.tag.visible = !!c.rag.mesh && !c.bubble.visible && d < 9 && d > 0.6; c.tag.position.set(_tp.x, _tp.y + 0.27, _tp.z); } }
 Character.hearers = () => [player.head];
 
 // ---------------- effects ----------------
@@ -270,7 +284,7 @@ fitCamera(); window.addEventListener('resize', fitCamera);
 
 // ---------------- pause & the end ----------------
 let paused = false;
-function setPaused(on) { paused = on; document.body.classList.toggle('paused', on); hud.pause(on, { restart: () => location.reload(), menu: () => { location.href = location.pathname; }, mute: (m) => setMuted(m) }); }
+function setPaused(on) { paused = on; document.body.classList.toggle('paused', on); hud.pause(on, { music: () => { const v = carols.toggle(); try { localStorage.setItem('xm_music', v ? '1' : '0'); } catch (e) {} return v; }, musicOn: () => carols.on, restart: () => location.reload(), menu: () => { location.href = location.pathname; }, mute: (m) => setMuted(m) }); }
 function gameOver(title, lines) {
   if (G.over) return; G.over = true;
   hud.result(title, lines, { again: () => location.reload(), menu: () => { location.href = location.pathname; } });
@@ -279,12 +293,14 @@ function gameOver(title, lines) {
 
 // ---------------- the loop ----------------
 const clock = new THREE.Clock();
+const carols = new Carols(); try { if (localStorage.getItem('xm_music') === '0') carols.toggle(false); } catch (e) {}
 setAmbience('garden', () => player.head);
 const menuCam = new THREE.PerspectiveCamera(60, 1, 0.05, 120); let menuT = 0, menuSpot = 0;
 document.body.classList.add('ready');
 window.__ls && window.__ls('go');
 function frame(simDt) {
   const dt = simDt ?? Math.min(clock.getDelta(), 0.05);
+  carols.update();
   const xr = renderer.xr.isPresenting;
   if (paused && simDt == null && !xr) { renderer.render(scene, camera); return; }
   G.time += dt;
@@ -315,6 +331,7 @@ function frame(simDt) {
       if (d < 0.55 && d > 1e-3) { const p = (0.55 - d) / 2 / d; a.root.x -= dx * p; a.root.z -= dz * p; b.root.x += dx * p; b.root.z += dz * p; } }
   }
   if (mode && !G.over) mode.update(dt);
+  placeTags();
   crumbs.update(dt); words.update(dt); tint.update(dt);
   room.update && room.update(dt);
   setListener(player.head, player.fwd, _b.set(0, 1, 0).applyQuaternion(camera.getWorldQuaternion(_q)));

@@ -60,7 +60,7 @@ export class Hangry {
   update(dt) {
     if (!this.started) return;
     const h = this.hunger; this.t -= dt;
-    h.rate = 1 / Math.max(14, 40 - (180 - this.t) * 0.12);      // (she gets hungrier faster as the afternoon goes on)
+    h.rate = 1 / Math.max(20, 55 - (180 - this.t) * 0.15);      // (she gets hungrier faster as the afternoon goes on)
     h.update(dt);
     const j = h.joan; if (j && this.seat && !j.down) j.backTo(this.seat.x, this.seat.z, this.seat.yaw, true);
     this.g.hud.hangry(h.v, h.wantLabel);
@@ -123,7 +123,7 @@ export class Fling {
         g.words.show(d.toFixed(1) + ' m!', p.clone().add({ x: 0, y: 0.8, z: 0 }), '#ffd400', 0.3, 2);
         g.sfx(d > 6 ? 'cheer' : 'crowd_ooh', null, 0.7);
         const fan = g.cast.find(x => x !== c && !x.down); fan && fan.say(d > 6 ? 'What a fling!' : 'Is that it?', 3);
-        c.active = false; this.flying = null; setTimeout(() => { if (c.spot) c.goTo(c.spot.x, c.spot.z, 1); }, 2500);
+        c.active = false; this.flying = null; this.cur = null; setTimeout(() => { if (c.spot) c.goTo(c.spot.x, c.spot.z, 1); }, 2500);
         setTimeout(() => this.next(), 900);
       }
     }
