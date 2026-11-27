@@ -1,0 +1,79 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Make the family models</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>body{margin:0;background:#334}</style></head><body>
+<script type="module">
+// Builds the people who have no 3D scan (Lisa, Michael, Sophie, Jimmy, Joan) with the Boxing Day quiz's procedural
+// body builder (tools/procbody/body.js), bakes each one into a single static mesh in its rest pose (arms down, facing
+// +Z, metres) and exports it as a GLB, plus the joint positions the game's ragdoll needs (`bind`).
+// Run it with tools/makefamily.mjs, which saves assets/family/<id>.glb and prints the bind data.
+// ?show=1 draws them in a line-up instead.
+import * as THREE from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { buildCharacter } from './procbody/body.js';
+
+export const SPECS = {
+  joan: { name: 'Joan', sex: 'f', height: 1.52, build: 'standard', widthMul: 1.12, seed: 71, skin: '#f0cdb8', rosy: 0.25,
+    hair: { style: 'curly', color: '#dcd8d2', root: '#bdb8b0', tip: '#f2f0ec' }, top: { pattern: 'snowflake', c1: '#5a1f3a', c2: '#f4efe6' },
+    legs: { type: 'trousers', c1: '#3b3a46' }, socks: '#b81e2a', lip: '#b8606a', eyes: '#5a6a7a',
+    face: { jaw: 0.82, nose: 1.0, noseW: 1.05, brow: 0.25, cheek: 0.75, lips: 0.95 } },
+  lisa: { name: 'Lisa', sex: 'f', height: 1.60, build: 'standard', seed: 72, skin: '#eec7ab',
+    hair: { style: 'long', color: '#6a4426', root: '#4a2e1a', tip: '#8a6040', length: 0.3 }, top: { pattern: 'sparkly', c1: '#1c4a2e', c2: '#e8c24a' },
+    legs: { type: 'jeans', c1: '#23304a' }, socks: '#f0f0f0', lip: '#b8606a', eyes: '#4a3a26', face: { jaw: 0.8 } },
+  michael: { name: 'Michael', sex: 'm', height: 1.77, build: 'bigger', seed: 73, skin: '#eabf9f',
+    hair: { style: 'short', color: '#8a8680', recede: 0.55 }, stubble: 0.45, stubbleColor: '#7a7672', browColor: '#6a6662',
+    top: { pattern: 'fairisle', c1: '#7a1a1e', c2: '#f2efe8', c3: '#1d3d6a' }, legs: { type: 'trousers', c1: '#4a4236' }, socks: '#1d3d6a', eyes: '#4a6a8a',
+    face: { jaw: 0.95, nose: 1.15, noseW: 1.15, brow: 0.85 } },
+  sophie: { name: 'Sophie', sex: 'f', height: 1.66, build: 'slim', seed: 74, skin: '#f1cbb0',
+    hair: { style: 'long', color: '#a87a48', root: '#6a4a2a', tip: '#d8b07a', length: 0.4 }, top: { pattern: 'sparkly', c1: '#16161c', c2: '#d8d8e8' },
+    legs: { type: 'jeans', c1: '#1a1a20' }, socks: '#ffffff', lip: '#c05a6a', eyes: '#4a6a3a', face: { jaw: 0.78, lips: 1.2 } },
+  jimmy: { name: 'Jimmy', sex: 'm', height: 1.98, build: 'slim', seed: 75, skin: '#efc6a8',
+    hair: { style: 'messy', color: '#3e2a1a' }, stubble: 0.2, stubbleColor: '#3a2818',
+    top: { pattern: 'hoodie', c1: '#1f5a3a' }, legs: { type: 'jeans', c1: '#2a3a55' }, socks: '#222222', eyes: '#4a3a26', face: { jaw: 0.9, nose: 1.05 } },
+};
+
+// one static mesh, vertex colours, in the rest pose (the skinned mesh is built in its bind pose already)
+function bake(ch) {
+  const src = ch.mesh.geometry, g = new THREE.BufferGeometry();
+  g.setAttribute('position', src.attributes.position.clone());
+  g.setAttribute('normal', src.attributes.normal.clone());
+  const c = src.attributes.color; const col = new Float32Array(c.count * 3);
+  for (let i = 0; i < c.count; i++) { col[i * 3] = c.getX(i); col[i * 3 + 1] = c.getY(i); col[i * 3 + 2] = c.getZ(i); }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setIndex(src.index.clone());
+  return g;
+}
+function bindOf(ch, spec) {
+  const d = ch.dims, H = d.H, O = d.origins, r3 = (v) => Math.round(v * 1000) / 1000;
+  const pos = ch.mesh.geometry.attributes.position; let top = 0, chestD = 0, chestW = 0;
+  for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y > top) top = y;
+    if (y > d.p.waist * H && y < d.p.shoulder * H - 0.05 * H && Math.abs(pos.getX(i)) < d.shoulderHalf * 0.8) chestD = Math.max(chestD, Math.abs(pos.getZ(i))); }
+  chestW = d.shoulderHalf * 0.82;
+  const ha = [O[4][0], d.wristY - 0.1 * H, O[4][2]];
+  return { sh: O[3].map(r3), el: O[4].map(r3), ha: ha.map(r3), hipX: r3(O[7][0]), hipY: r3(O[7][1]), kneeY: r3(O[8][1]), neckY: r3(d.p.neck * H), topY: r3(top),
+    headZ: 0, chestW: r3(chestW), chestD: r3(chestD * 0.9), pelvisW: r3(d.hipX + d.legR * 0.7), arm: r3(d.armR), leg: r3(d.legR) };
+}
+
+const out = {};
+const q = new URLSearchParams(location.search);
+const scene = new THREE.Scene(); let x = -2;
+for (const [id, spec] of Object.entries(SPECS)) {
+  const ch = buildCharacter(spec);
+  const geo = bake(ch);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, side: THREE.DoubleSide }));
+  mesh.name = id;
+  if (q.get('show')) { mesh.position.x = x; x += 1; scene.add(mesh); continue; }
+  const glb = await new GLTFExporter().parseAsync(mesh, { binary: true });
+  const u8 = new Uint8Array(glb); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  out[id] = { glb: btoa(s), bind: bindOf(ch, spec), h: spec.height, tris: geo.index.count / 3 };
+}
+if (q.get('show')) {
+  const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); document.body.appendChild(r.domElement);
+  r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
+  scene.add(new THREE.HemisphereLight('#fff', '#543', 1.4)); const dl = new THREE.DirectionalLight('#fff', 2.2); dl.position.set(2, 4, 5); scene.add(dl);
+  const cam = new THREE.PerspectiveCamera(+(q.get('fov') || 30), innerWidth / innerHeight, 0.01, 50);
+  const c = (q.get('cam') || '0,1.0,6').split(',').map(Number), l = (q.get('look') || '0,0.95,0').split(',').map(Number);
+  cam.position.set(...c); cam.lookAt(...l); r.render(scene, cam);
+}
+window.FAMILY = out; document.title = 'ready';
+</script></body></html>

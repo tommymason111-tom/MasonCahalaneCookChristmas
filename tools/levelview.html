@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Level viewer</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
+<style>body{margin:0;overflow:hidden;background:#000}</style></head><body>
+<script type="module">
+// Level viewer: tools/levelview.html?place=sandybay&cam=x,y,z&look=x,y,z  (or &top=1 for a plan view)
+// Builds the level on its own (no game) and draws one picture. window.VIEW.room is the room object.
+import * as THREE from 'three';
+const q = new URLSearchParams(location.search), place = q.get('place') || 'sandybay';
+const mod = place === 'tewkes' ? await import('../js/levels/tewkes.js') : await import('../js/levels/sandybay.js');
+const build = mod.buildTewkesRoad || mod.buildSandyBay;
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.setPixelRatio(1);
+r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9db7ff);
+const room = build(scene);
+const cam = new THREE.PerspectiveCamera(+(q.get('fov') || 70), innerWidth / innerHeight, 0.05, 120);
+room.camera = cam;
+const P = (s, d) => (s || d).split(',').map(Number);
+if (q.get('top')) { const b = room.bounds; cam.position.set((b.x0 + b.x1) / 2, +(q.get('top')) > 1 ? +q.get('top') : 40, (b.z0 + b.z1) / 2 + 0.01); cam.lookAt((b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2); }
+else { const s = room.start || { x: 0, z: 0, yaw: 0 }; cam.position.set(...P(q.get('cam'), `${s.x},1.6,${s.z}`)); cam.lookAt(...P(q.get('look'), `${s.x - Math.sin(s.yaw)},1.5,${s.z - Math.cos(s.yaw)}`)); }
+for (let i = 0; i < 3; i++) room.update && room.update(1 / 60);
+r.render(scene, cam);
+let tris = 0, calls = 0; scene.traverse(o => { if (o.isMesh && o.geometry) { calls++; const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3 * (o.count || 1); } });
+window.VIEW = { room, scene, cam, r, stats: { meshes: calls, tris: Math.round(tris), info: r.info.render } };
+document.title = 'ready';
+</script></body></html>

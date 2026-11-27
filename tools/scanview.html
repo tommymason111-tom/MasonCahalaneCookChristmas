@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><title>scan view</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>body{margin:0;background:#fff}</style></head><body>
+<script type="module">
+// tools/scanview.html?m=karen&side=1 : a model scaled to 1 unit tall, feet at 0, front (or side) on, with a grid every 0.05
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+const q = new URLSearchParams(location.search);
+const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder);
+const g = await l.loadAsync('../assets/family/' + q.get('m') + '.glb');
+const s = new THREE.Scene(); const grp = g.scene; s.add(grp);
+const bb = new THREE.Box3().setFromObject(grp), h = bb.max.y - bb.min.y, c = bb.getCenter(new THREE.Vector3());
+grp.position.set(-c.x, -bb.min.y, -c.z); const k = 1 / h; const w = new THREE.Group(); w.add(grp); w.scale.setScalar(k); s.add(w);
+if (q.get('side')) w.rotation.y = Math.PI / 2;
+s.add(new THREE.AmbientLight('#fff', 2.5));
+const lines = []; for (let i = -10; i <= 22; i++) { const v = i * 0.05; lines.push(-0.6, v, 0.5, 0.6, v, 0.5); lines.push(v - 0.0, -0.05, 0.5, v - 0.0, 1.1, 0.5); }
+const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
+s.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.35 })));
+const cam = new THREE.OrthographicCamera(-0.6, 0.6, 1.1, -0.05, 0.01, 10); cam.position.set(0, 0, 3); cam.lookAt(0, 0, 0); cam.position.y = 0;
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); document.body.appendChild(r.domElement); r.setClearColor(0xffffff);
+r.outputColorSpace = THREE.SRGBColorSpace; r.render(s, cam);
+window.INFO = { h, bb: [bb.min.toArray(), bb.max.toArray()] }; document.title = 'ready';
+</script></body></html>

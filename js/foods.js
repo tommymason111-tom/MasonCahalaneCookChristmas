@@ -151,6 +151,8 @@ function sausageRollGeo() {
   for (let i = 0; i < 4; i++) p.push(part(box(0.004, 0.003, 0.04), 0xb7782a, [-0.03 + i * 0.02, 0.024, 0], [0, 0.4, 0]));
   return merge(p);
 }
+// more food shapes added by the game (the Christmas food: js/xmas/xfood.js)
+export const EXTRA_GEO = {};
 // far-away versions of the newer fast food (the detailed ones are in foodmodels.js)
 const lowNew = {
   nuggets: () => merge([part(box(0.09, 0.05, 0.06), 0xd32f2f, [0, -0.025, 0]), part(sph(0.03, 8, 6), 0xd9902e, [0, 0.004, 0], [0, 0, 0], [1.4, 0.5, 0.9])]),
@@ -423,7 +425,7 @@ function meshFor(type, v = 0) {
   if (!geoCache[type]) geoCache[type] = { burger: burgerGeo, pizza: pizzaGeo, doughnut: doughnutGeo, broccoli: broccoliGeo, carrot: carrotGeo, celery: celeryGeo, sprout: sproutGeo, pint: pintGeoLow, shake: shakeGeo, poop: poopGeo,
     hotdog: hotdogGeo, fries: friesGeo, kebab: kebabGeo, chicken: chickenGeo, taco: tacoGeo, crisps: crispsGeo, choc: chocGeo, cookie: cookieGeo, icecream: icecreamGeo, sausageroll: sausageRollGeo,
     croissant: croissantGeo, baguette: baguetteGeo, muffin: muffinGeo, painchoc: painchocGeo, swirl: swirlGeo, icedbun: icedbunGeo, pretzel: pretzelGeo,
-    apple: appleGeo, pear: pearGeo, orange: orangeGeo, banana: bananaGeo, tomato: tomatoGeo, cucumber: cucumberGeo, pepper: pepperGeo, cauliflower: cauliflowerGeo, dart: dartGeo, beer: beerGeo, glass: glassGeo, cider: ciderGeo, sodagun: sodagunGeo, ...lowNew }[type]();
+    apple: appleGeo, pear: pearGeo, orange: orangeGeo, banana: bananaGeo, tomato: tomatoGeo, cucumber: cucumberGeo, pepper: pepperGeo, cauliflower: cauliflowerGeo, dart: dartGeo, beer: beerGeo, glass: glassGeo, cider: ciderGeo, sodagun: sodagunGeo, ...lowNew, ...EXTRA_GEO }[type]();
   return new THREE.Mesh(geoCache[type], vcLambert);
 }
 

@@ -20,6 +20,12 @@ const _pmR = new THREE.Matrix4(), _pmT = new THREE.Matrix4();
 const pivotM = (p, q) => _hm3.makeTranslation(p.x, p.y, p.z).multiply(_pmR.makeRotationFromQuaternion(q)).multiply(_pmT.makeTranslation(-p.x, -p.y, -p.z));
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+// (the family scans are shipped compressed: meshopt, quantized ints. Every attribute is turned back into plain floats before the skinning works on it)
+function toFloat(geo) { for (const k of Object.keys(geo.attributes)) { const a = geo.attributes[k]; if (a.array instanceof Float32Array && !a.normalized && !a.isInterleavedBufferAttribute) continue;
+    const n = a.count, sz = a.itemSize, out = new Float32Array(n * sz); for (let i = 0; i < n; i++) { out[i * sz] = a.getX(i); if (sz > 1) out[i * sz + 1] = a.getY(i); if (sz > 2) out[i * sz + 2] = a.getZ(i); if (sz > 3) out[i * sz + 3] = a.getW(i); }
+    geo.setAttribute(k, new THREE.BufferAttribute(out, sz)); }
+  return geo; }
 import { characterGroup, GROUP } from './physics.js';
 import { skinCaps, charGeo, charMat, shellGeo } from './quality.js';      // (QUALITY TIERS: quality.js)
 
@@ -33,7 +39,7 @@ export function fetchModel(url) {
     const p = (async () => {
       let err;
       for (let i = 0; i < 4; i++) {
-        try { const g = await new GLTFLoader().loadAsync(url); g.parser = null; return g; }      // (the loader keeps the whole download and its pieces too: only the model's needed)
+        try { const ld = new GLTFLoader(); ld.setMeshoptDecoder(MeshoptDecoder); const g = await ld.loadAsync(url); g.parser = null; return g; }      // (the loader keeps the whole download and its pieces too: only the model's needed)
         catch (e) { err = e; await new Promise(r => setTimeout(r, 600 * (i + 1))); }
       }
       MODELS.delete(url); throw err;
@@ -158,6 +164,7 @@ export class Ragdoll {
     this.world = physics.world;
     this.defs = partDefs(bodyOpts);
     this.height = bodyOpts.h || 1.68;
+    this.fitModel = !!bodyOpts.fit;      // (scale the model to this height: see loadModel)
     this.parts = {};
     this.list = [];
     this.mode = 'anim';         // 'anim' | 'ragdoll' | 'blend'
@@ -317,12 +324,21 @@ export class Ragdoll {
     let src = null;
     gltf.scene.traverse(o => { if (o.isMesh && !src) src = o; });
     src.updateWorldMatrix(true, false);
-    const geo = src.geometry.clone();
+    const geo = toFloat(src.geometry.clone());
     geo.applyMatrix4(src.matrixWorld);
+    // a model made at any size (the family scans are 1 unit tall): stood on the floor, centred, scaled to the person's height
+    // (centred on the torso, not the whole box: arms held out in front would pull the middle forward)
+    if (this.fitModel) { geo.computeBoundingBox(); const b0 = geo.boundingBox, hh = b0.max.y - b0.min.y, k0 = this.height / hh, pa = geo.attributes.position;
+      let cx = 0, cz = 0, cn = 0; for (let i = 0; i < pa.count; i++) { const y = (pa.getY(i) - b0.min.y) / hh, x = pa.getX(i) - (b0.min.x + b0.max.x) / 2;
+        if (y > 0.5 && y < 0.72 && Math.abs(x) < 0.16 * hh) { cx += pa.getX(i); cz += pa.getZ(i); cn++; } }
+      if (cn) { cx /= cn; cz /= cn; } else { cx = (b0.min.x + b0.max.x) / 2; cz = (b0.min.z + b0.max.z) / 2; }
+      geo.translate(-cx, -b0.min.y, -cz); geo.scale(k0, k0, k0); }
+    if (!geo.attributes.normal) geo.computeVertexNormals();
     const old = src.material;
     // a little self-lighting from his own texture softens the low-poly facets under harsh lights
     const skin = skinOf(gltf, old);
-    const mat = new THREE.MeshLambertMaterial({ map: skin.map, normalMap: phoneNormal(gltf, old.normalMap), color: 0xe6e6e6, emissive: 0x3a3a3a, emissiveMap: skin.map, side: old.side || THREE.FrontSide });   // (double-sided if the model says so)
+    const vcol = !skin.map && !!geo.attributes.color;      // (a made-up person: their colours are painted on the vertices, no picture)
+    const mat = new THREE.MeshLambertMaterial({ map: skin.map, normalMap: phoneNormal(gltf, old.normalMap), color: vcol ? 0xffffff : 0xe6e6e6, emissive: vcol ? 0x161616 : 0x3a3a3a, emissiveMap: skin.map, vertexColors: vcol, side: old.side || THREE.FrontSide });   // (double-sided if the model says so)
     if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
     // the eye openings are cut out with a smooth mask (stored in the model's occlusion slot; packed into the picture's alpha)
     if (old.aoMap) { mat.alphaMap = skin.alphaMap; mat.alphaTest = 0.5; mat.side = THREE.DoubleSide; }   // double-sided: steep views into a socket never see through his head
