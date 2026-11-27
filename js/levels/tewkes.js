@@ -8,7 +8,7 @@
 //   z -5.2 .. -1.5   the single-storey KITCHEN extension (x -1..3.8), the patio round its side
 //   z -1.5 .. 3.4    the BACK ROOM (dining, x -3.2..1.3): Christmas dinner for 9, the serving hatch to the kitchen
 //   z 3.4 .. 9.3     the FRONT ROOM (lounge, x -3.2..1.3): bay window with the tree in it, gas fire, Nan's chair,
-//                    the suite and chairs facing the TV in the corner (the quiz)
+//                    the suite and chairs facing the TV in the corner
 //   x 1.3 .. 3.8     the HALL all the way down the side: front door, stairs (gated), under-stairs cupboard, the loo,
 //                    the low door to the kitchen ("MIND YOUR HEAD JIMMY")
 //   x -4.6 .. -3.2   the side passage, front garden to back garden
@@ -224,7 +224,7 @@ export function buildTewkesRoad(scene) {
     skin(axis, f, a0, a1, 0, KCEIL, holes, dir, KP); trim(axis, f, a0, a1, dir, holes, { ceil: KCEIL }); }
   skin('x', KZ0 + WT / 2 + 0.008, KX0 + WT / 2, 1.95, 0.92, 1.45, [[-0.2, 1.2, 1.05, 2.05]], 1, KT, 0.3); skin('z', KX0 + WT / 2 + 0.008, KZ0 + WT / 2, -1.7, 0.92, 1.45, [], 1, KT, 0.3); skin('z', iX1 - 0.008, -4.4, -2.45, 0.92, 1.45, [], -1, KT, 0.3);
 
-  // ======================================================== THE FRONT ROOM (the quiz)
+  // ======================================================== THE FRONT ROOM
   // ---- the bay window: three faces of glass on a low brick wall, nets, heavy curtains, a little tiled roof outside
   const BAY = [[-2.6, 8.5], [-2.0, 9.3], [-0.4, 9.3], [0.2, 8.5]];
   for (let i = 0; i < 3; i++) {
@@ -297,7 +297,7 @@ export function buildTewkesRoad(scene) {
   k.spawns.push(new THREE.Vector3(ST.x + 0.06, 0.66, ST.z + 0.08));
   wsign('z', iX0, 1, 7.6, 1.6, 0.42, 0.34, "NAN'S CHAIR.\nSIT IN IT AND YOU'RE OUT OF THE WILL.", { bg: '#f4ecd8', fg: '#6a1a2a', border: '#8a6a3a', size: 50, board: 0x8a6a3a });
 
-  // ---- the TV in the corner (a plain dark screen: the quiz goes on it) on a corner unit
+  // ---- the TV in the corner (a plain dark screen: the telly) on a corner unit
   const TVP = { x: -2.6, z: 3.85 }, tvYaw = yawTo(TVP.x, TVP.z, -0.1, 5.7), fx = Math.sin(tvYaw), fz = Math.cos(tvYaw);
   k.box(0.8, 0.52, 0.5, TVP.x - fx * 0.08, 0.26, TVP.z - fz * 0.08, 0x4a2a16, { rot: [0, tvYaw, 0], collide: true }); k.blockers.push({ x0: iX0, x1: -2.2, z0: 3.46, z1: 4.3, y1: 0.55 });
   k.box(0.7, 0.012, 0.42, TVP.x - fx * 0.08, 0.3, TVP.z - fz * 0.08, 0x3a2010, { rot: [0, tvYaw, 0] });                      // shelf inside
@@ -320,8 +320,8 @@ export function buildTewkesRoad(scene) {
   sofa(k, { x: -0.35, z: 4.3, len: 0.95, depth: 0.88, ry: faceRy(-0.35, 4.3, -2.3, 6.4), color: 0x9a7a52, seats: 1, pillows: 1 });
   for (const [x, z, col, cush] of [[-0.75, 5.0, 0x4a2a16, 0x6a1a2a], [-0.75, 5.8, 0x4a2a16, 0x6a1a2a], [-1.05, 7.45, 0xc8a06a, 0xd8c8a0]]) k.chair(x, z, faceRy(x, z, -2.5, 5.6), col, cush);
   takeSeats(m0);
-  wsign('z', 1.24, -1, 5.05, 1.55, 1.0, 0.62, "NAN'S QUIZ RULES\n1. NAN'S ANSWER IS RIGHT\n2. PAUL MAY ARGUE ONCE\n3. 'I LITERALLY SAID THAT' AFTER THE ANSWER DOES NOT COUNT, CHARLI\n4. NO PHONES (TOMMY)", { bg: '#fff8e7', fg: '#1a1a1a', border: '#c0392b', size: 52, board: 0xb08a3a });
-  wsign('z', 1.24, -1, 7.85, 1.62, 0.5, 0.62, 'THE CRYING BOY\n(PAUL, WHEN HE\'S WRONG AT THE QUIZ)', { bg: '#3a2a1a', fg: '#f4e8c8', border: '#b08a3a', size: 46, board: 0xb08a3a });
+  wsign('z', 1.24, -1, 5.05, 1.55, 1.0, 0.62, "NAN'S HOUSE RULES\n1. NAN IS ALWAYS RIGHT\n2. PAUL MAY ARGUE ONCE\n3. 'I LITERALLY SAID THAT' DOES NOT COUNT AFTERWARDS, CHARLI\n4. NO PHONES AT THE TABLE (TOMMY)", { bg: '#fff8e7', fg: '#1a1a1a', border: '#c0392b', size: 52, board: 0xb08a3a });
+  wsign('z', 1.24, -1, 7.85, 1.62, 0.5, 0.62, 'THE CRYING BOY\n(PAUL, WHEN HE LOSES AN ARGUMENT)', { bg: '#3a2a1a', fg: '#f4e8c8', border: '#b08a3a', size: 46, board: 0xb08a3a });
 
   // ---- the glass display cabinet: Nan's ornaments and the family photos
   { const x0 = 0.32, x1 = 1.22, z0 = 3.46, z1 = 3.86, H = 1.7, xc = (x0 + x1) / 2;
@@ -427,7 +427,7 @@ export function buildTewkesRoad(scene) {
   photo('z', iX0, 1, 0.2, 1.62, 0.36, 0.46, ['karen'], 'studio', 'Karen · school photo 1984', 0x8a6a3a);
   photo('z', iX0, 1, 0.75, 1.62, 0.36, 0.46, ['lisa'], 'studio', 'Lisa · school photo 1986', 0x8a6a3a);
   wsign('z', iX0, 1, 1.7, 1.55, 0.62, 0.5, "WHO BROKE THE GREENHOUSE? (1989)\nCASE STILL OPEN.\nSUSPECTS: KAREN, LISA.\nNAN KNOWS.", { bg: '#f8f4e0', fg: '#222', border: '#c62828', size: 48, board: 0xc8a070 });
-  wsign('z', iX0, 1, 2.55, 1.6, 0.38, 0.5, 'DECEMBER\n25: EVERYONE HERE 1PM\nDINNER 2PM SHARP\nQUIZ 4PM\nSOPHIE\'S TRAIN 6:42', { bg: '#fffef6', fg: '#333', border: '#2e7d32', size: 46 });
+  wsign('z', iX0, 1, 2.55, 1.6, 0.38, 0.5, 'DECEMBER\n25: EVERYONE HERE 1PM\nDINNER 2PM SHARP\nTHE KING\'S SPEECH 3PM\nSOPHIE\'S TRAIN 6:42', { bg: '#fffef6', fg: '#333', border: '#2e7d32', size: 46 });
   k.cyl(0.17, 0.17, 0.04, iX0 + 0.02, 1.95, -0.65, 0x3a1a10, 20); k.label('clock', 0.3, 0.3, [iX0 + 0.045, 1.95, -0.65], [0, PI / 2, 0], { tex: TX.clockFaceTex(false) });
   wsign('x', iZB, 1, -2.1, 2.3, 0.62, 0.1, 'PAPER HATS ARE COMPULSORY. YES, PAUL, YOU TOO.', { bg: '#c62828', fg: '#fff', border: null, size: 48 });
   fl.string([iX0 + 0.05, 2.2, -1.2], [iX0 + 0.05, 2.2, 3.2], 30, { sag: 0.1 });

@@ -16,7 +16,7 @@ import { mergeMaterialGroups, atlasSigns } from '../perf.js';
 import * as quality from '../quality.js';
 import { buildSandyBay } from '../levels/sandybay.js';
 import { buildTewkesRoad } from '../levels/tewkes.js';
-import { FAMILY, FAMILY_IDS, TEAMS, HOST } from './family.js';
+import { FAMILY, FAMILY_IDS, TEAMS } from './family.js';
 import { addChristmasFood, XMAS_SPREAD, SWEETS } from './xfood.js';
 import { Hangry, Fling } from './games.js';
 import { Hud } from './hud.js';
