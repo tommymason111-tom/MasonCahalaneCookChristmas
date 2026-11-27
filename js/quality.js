@@ -6,8 +6,10 @@
 //                           filtering, a 4096 sun shadow map, soft contact shadows under everyone indoors, a finer picture
 //   HIGH   (iPhone/iPad,    exactly the game as it was before tiers: same models, same textures (1024 skins on a phone),
 //           Android)        same shadows, same picture
-//   MEDIUM (Meta Quest)     lighter models (fewer triangles near, far fewer further off: switched by distance), 1024
-//                           skins with 512 surface detail, a 1024 shadow map, only nearby people cast shadows
+//   MEDIUM (Meta Quest)     the full models up close (as on HIGH); only people over ~6 m away swap to a lighter copy
+//                           (half the triangles, made by meshoptimizer's simplifier, which keeps the shape and the
+//                           texture seams). Quest 3 / 3S / Pro: 2048 skins with 1024 surface detail (Quest 2: 1024 / 512),
+//                           a 1024 shadow map, only nearby people cast shadows
 //   LOW    (the floor the   lighter again, 512 skins, a 512 shadow map, only people right by you cast shadows, no
 //           auto-drop stops at) antialiasing (next load)
 //
@@ -29,6 +31,13 @@ const UA = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
 const TOUCH = typeof navigator !== 'undefined' ? navigator.maxTouchPoints || 0 : 0;
 // a phone or tablet (the same test ragdoll.js always used for its phone-sized pictures)
 export const PHONE = /iPhone|iPad|iPod|Android/i.test(UA) || (TOUCH > 1 && /Macintosh/.test(UA));
+// a newer headset (Quest 3 / 3S / Pro: twice the graphics memory of a Quest 2): sharper skins there
+export const BIG_HEADSET = /Quest 3|Quest Pro|Quest 3S/i.test(UA);
+
+// meshoptimizer's simplifier (wasm, ~20 KB): the lighter far-off copies of each person. Loaded in the background; if it
+// can't load, the older grid method below makes them instead.
+let SIMP = null;
+import('meshoptimizer/simplifier').then(async (m) => { await m.MeshoptSimplifier.ready; SIMP = m.MeshoptSimplifier; }).catch((e) => console.warn('quality: no simplifier', e));
 
 // ---------------------------------------------------------------- which device is this?
 export function detectTier({ ua = UA, touch = TOUCH, mem = (typeof navigator !== 'undefined' && navigator.deviceMemory) || 0, cores = (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 0 } = {}) {
@@ -62,7 +71,7 @@ export const quality = {
 const SPEC = {
   ultra: { skin: 4096, normal: 1e9, aniso: 16, pr: [1.25, 2], shadow: 4096, casters: Infinity, geo: [['sub', 4.5], ['base', Infinity]], blob: true, aa: true, xrScale: 1 },
   high: { skin: PHONE ? 1024 : 4096, normal: PHONE ? 512 : 1e9, aniso: 4, pr: [0, 1.75], shadow: 2048, casters: Infinity, geo: [['base', Infinity]], aa: true, xrScale: 1 },
-  medium: { skin: 1024, normal: 512, aniso: 4, pr: [0, 1.25], shadow: 1024, casters: 9, geo: [[0.6, 5], [0.28, Infinity]], aa: true, xrScale: 1 },
+  medium: { skin: BIG_HEADSET ? 2048 : 1024, normal: BIG_HEADSET ? 1024 : 512, aniso: 4, pr: [0, 1.25], shadow: 1024, casters: 9, geo: [['base', 6], [0.5, Infinity]], aa: true, xrScale: 1 },
   low: { skin: 512, normal: 256, aniso: 2, pr: [0, 1], shadow: 512, casters: 4, geo: [[0.3, 3.5], [0.14, Infinity]], aa: false, xrScale: 0.85 },
 };
 export const spec = (t = S.live) => SPEC[t] || SPEC.high;
@@ -96,7 +105,7 @@ function setLevels(rag, tier) {
   q.tier = tier; q.cur = 0;
   // whatever's no longer one of its levels goes (from the graphics chip, and the lighter copies from memory too)
   const used = new Set(q.levels.map(l => l.geo));
-  for (const [k, g] of [...q.dec]) if (!used.has(g)) { q.dec.delete(k); g.userData.keep = false; g.dispose(); }
+  for (const [k, g] of [...q.dec]) if (!used.has(g)) { q.dec.delete(k); g.userData.keep = false; if (!g.userData.shared) g.dispose(); }      // (a simplified copy shares the model's points: disposing it would drop theirs too)
   for (const g of [q.base, q.sub]) if (g && !used.has(g)) { g.userData.keep = false; }
   if (rag.mesh && rag.mesh.geometry !== q.levels[0].geo) rag.mesh.geometry = q.levels[0].geo;
 }
@@ -184,12 +193,34 @@ export function subdividePN(geo, curve = 0.75) {
   return g;
 }
 
-// MEDIUM / LOW: a lighter model by gathering nearby points into one (a grid over the body, finer or coarser to keep the
+// MEDIUM / LOW, the good way: meshoptimizer collapses the edges that change the shape least (flat cheeks and backs go
+// first; noses, ears, fingers and the face's outline stay), and never pulls a texture seam apart. Only a new list of
+// triangles is made: the points, their texture positions and bone weights are the original model's, shared.
+function simplifyMesh(geo, share) {
+  if (!SIMP) return null;
+  try {
+    const P = geo.attributes.position, n = P.count, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { pos[i * 3] = P.getX(i); pos[i * 3 + 1] = P.getY(i); pos[i * 3 + 2] = P.getZ(i); }
+    const src = geo.index.array, idx = src instanceof Uint32Array ? src : new Uint32Array(src), T = idx.length / 3;
+    const want = Math.max(3, Math.round(T * share) * 3);
+    const [out] = SIMP.simplify(idx, pos, 3, want, 0.05);
+    if (out.length > want * 1.35) return null;      // (an unwelded model can get stuck: the grid method does those)
+    const g = new THREE.BufferGeometry();
+    for (const name of Object.keys(geo.attributes)) g.setAttribute(name, geo.attributes[name]);
+    for (const name of Object.keys(geo.morphAttributes)) g.morphAttributes[name] = geo.morphAttributes[name];
+    g.morphTargetsRelative = geo.morphTargetsRelative;
+    g.setIndex(new THREE.BufferAttribute(n > 65535 ? out : new Uint16Array(out), 1));
+    g.userData.shared = true;
+    return g;
+  } catch (e) { console.warn('quality: simplify', e); return null; }
+}
+// MEDIUM / LOW, the fallback: a lighter model by gathering nearby points into one (a grid over the body, finer or coarser to keep the
 // wanted share of triangles). Points are only gathered with others on the same bone (an arm never fuses to the body),
 // and each kept point is a real point of the model with its own texture position and bone weights, so it's skinned
 // exactly as before. Every copy of a point (texture seams) moves to the same spot, so nothing opens up.
 export function decimate(geo, share) {
   if (!geo.index) return geo;
+  const fine = simplifyMesh(geo, share); if (fine) return fine;
   const P = geo.attributes.position, n = P.count, idx = geo.index.array, T = idx.length / 3;
   const SI = geo.attributes.skinIndex, UV = geo.attributes.uv;
   geo.computeBoundingBox(); const bb = geo.boundingBox, size = bb.getSize(new THREE.Vector3());

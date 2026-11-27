@@ -1,16 +1,21 @@
 // NAN'S NEW HOUSE (SANDY BAY): Joan's park home on Sandy Bay, "a luxury residential resort" (gated, over-50s) on
 // Thorney Bay Road, Canvey Island. Christmas Day afternoon. Looking down (x along her street, +z toward the road):
 //
-//   x -27          the way in: barrier, the turquoise SANDY BAY sign, Thorney Bay Reception (Nan's side), the Sales
-//                  Office & Car Wash (across)
-//   z 7 .. 12.5    Shore Drive (tarmac, low pale kerbs, slim anthracite lamp posts), Seafarer Drive off it to the north
+// Laid out like the aerial photo of her plot (Wave Road in front, Pebble Road behind the green verge).
+//   x -27          the way in: barrier, the turquoise SANDY BAY sign, the Sales Office & Car Wash (across)
+//   x -27 .. -15   Nan's left-hand neighbour (a Sonata), and the home behind it that fronts Pebble Road
+//   z 7 .. 12.5    Wave Road (tarmac, low pale kerbs, slim anthracite lamp posts), Seafarer Drive off it to the north
 //   z -3.05..3.05  NAN'S HOME, "THE RESIDENCE 60x20" (x -9.15 .. 9.15), floor up on its chassis (0.65 m):
 //                  master bedroom + en-suite | bathroom, utility / bedroom 2 | study / ENTRANCE HALL (front door) |
 //                  KITCHEN-DINER (island, the table set for nine) | LOUNGE with the cathedral window at the +x end
-//                  decking round the lounge end with a clear glass balustrade, steps down to THE GREEN (x 12 .. 21.5)
-//   x 22 .. 46     the clubhouse (mock-Tudor gable) and its heated pool behind brick piers and railings
+//                  decking round the lounge end with a clear glass balustrade, steps down to her side path
+//   z -3 .. -8.8   her back garden: two sheds in the back left-hand corner, the washing line; side hedges
+//   z -8.8 .. -9.5 the long back hedge (a little gate at the side path). No home behind her: just the hedge, then
+//   z -9.5 .. -20.6  THE GREEN, the long grass verge along Pebble Road (Fling the Family is played down it)
+//   x 14.5 .. 26.7 Nan's right-hand neighbour (a Sonata); the green carries on behind it
+//   x 27 .. 46     the clubhouse (mock-Tudor gable) and its heated pool behind brick piers and railings
 //   x 48           the white sea wall, a gate through to the promenade, the revetment, the beach, the estuary
-//   z < -9.5       the back hedge, the creek with its reeds and bridges, the next rows of homes
+//   z -20.6..-26.2 Pebble Road; across it, a row of homes facing it
 import * as THREE from 'three';
 import { Kit } from './kit.js';
 import { NavGrid } from '../nav.js';
@@ -32,9 +37,10 @@ const FAM = (n) => './assets/family/' + n + '.glb';
 const HX0 = -9.15, HX1 = 9.15, HZ0 = -3.05, HZ1 = 3.05, WT = 0.14, IH = 2.3, VAULT = 3.0;    // IH: walls inside (at the eaves); VAULT: the ridge inside
 const P1 = 3.65, P2 = -0.65;            // kitchen | lounge, hall | kitchen
 const DECK = { x0: P1, x1: 11.35, z0: -5.25, z1: HZ1, endX: HX1 };      // the decking: along the back of the lounge and round its end
-const DSTEP = { x0: 11.35, x1: 12.25, z0: -0.8, z1: 0.8 };                // steps down off the deck to the green
+const DSTEP = { x0: 11.35, x1: 12.25, z0: -0.8, z1: 0.8 };                // steps down off the deck to the side path
 const FSTEP = { x0: -2.45, x1: -0.75, land: 4.0, z1: 4.9 };               // the front landing (HZ1 .. land) and steps (land .. z1)
-const LAWN = { x0: 12.9, x1: 21.6, z0: -5.4, z1: 5.6 };                   // THE GREEN: clear grass for Fling the Family
+const LAWN = { x0: -10.8, x1: 24.6, z0: -19.9, z1: -10.2 };               // THE GREEN: the verge behind the back hedge, clear grass for Fling the Family
+const PLOT = { x0: -14.4, x1: 14.3, gate0: 12.4, gate1: 13.6 };           // Nan's plot's sides (hedges), the back gate in the hedge
 const PAINT = { lounge: 0xd8d6d2, kitchen: 0xbdb8b0, hall: 0xc9c2b7, bed: 0xc9c2b7, bed2: 0xd8d6d2, study: 0xd8d6d2, bath: 0xe9e4da, util: 0xd8d6d2 };
 
 export function buildSandyBay(scene) {
@@ -97,9 +103,9 @@ export function buildSandyBay(scene) {
   const clouds = new THREE.Mesh(new THREE.SphereGeometry(34, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.52), new THREE.MeshBasicMaterial({ map: cloudTex(), side: THREE.BackSide, transparent: true, depthWrite: false, fog: false }));
   clouds.renderOrder = -98; clouds.frustumCulled = false; skyRig.add(clouds);
   sky.onBeforeRender = (r, sc, cam) => { _skyV.setFromMatrixPosition(cam.matrixWorld); if (skyRig.position.distanceToSquared(_skyV) > 1e-6) { skyRig.position.copy(_skyV); skyRig.updateMatrixWorld(true); } };
-  // the ground: neat vivid lawn everywhere (the creek's cut out of it, behind the back hedge)
+  // the ground: neat vivid lawn everywhere
   const groundPiece = (x0, z0, x1, z1) => { const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0); g.rotateX(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, (z0 + z1) / 2); W.geo('lawn', metreUV2(g, 2)); };
-  groundPiece(-200, -9.6, 48, 200); groundPiece(-200, -200, 48, -15.0); groundPiece(-200, -15.0, -45, -9.6); groundPiece(23.5, -15.0, 48, -9.6);
+  groundPiece(-200, -200, 48, 200);
 
   // ======================================================== the resort round about
   const resort = buildResort(k, scene, W, rnd);
@@ -249,8 +255,9 @@ export function buildSandyBay(scene) {
   T('slab', FSTEP.x0, FSTEP.z1, FSTEP.x1, L.ROAD.z0 - 0.15, 0.012, 0.006, 1.2);                          // the path to the road
   T('slab', HX0 - 1.0, HZ1 + 0.4, FSTEP.x0, HZ1 + 1.4, 0.012, 0.006, 1.2);                               // ...and along to the hardstanding
   T('paving', -13.2, -2.6, HX0 - 1.0, L.ROAD.z0 - 0.15, 0.012, 0.007, 1);                                 // Nan's hardstanding (one car)
-  T('slab', HX1 - 0.2, HZ1 + 0.5, LAWN.x0 - 0.6, HZ1 + 1.5, 0.012, 0.006, 1.2);
-  T('slab', DSTEP.x1, DSTEP.z0, LAWN.x0 - 0.1, DSTEP.z1, 0.012, 0.006, 1.2);                               // off the deck steps
+  T('slab', HX1 - 0.2, HZ1 + 0.5, PLOT.gate1, HZ1 + 1.5, 0.012, 0.006, 1.2);
+  T('slab', DSTEP.x1, DSTEP.z0, PLOT.gate1, DSTEP.z1, 0.012, 0.006, 1.2);                                  // off the deck steps
+  T('slab', PLOT.gate0, L.HEDGE.z0 - 0.1, PLOT.gate1, DSTEP.z0, 0.012, 0.006, 1.2);                         // the side path, round to the back gate
   T('slab', HX0, HZ0 - 1.2, P1 - 0.2, HZ0 - 0.2, 0.012, 0.006, 1.2);                                      // round the back
   car(k, -11.7, 0.6, -Math.PI / 2, 0xb8bcc2, true);
   note('NAN\'S CAR (SHE ONLY DRIVES TO THE CLUBHOUSE. IT\'S 60 METRES.)', 0.6, 0.14, -11.7, 0.95, 2.66, 0, '#ffffff', '#2b2d30', 34);
@@ -260,20 +267,46 @@ export function buildSandyBay(scene) {
   k.blockers.push({ x0: 3.0, x1: 5.6, z0: 4.7, z1: 5.9, y1: 1.2 });
   { k.box(0.05, 1.0, 0.05, 6.6, 0.5, 5.6, 0x5a4030); sign('SANTA PLEASE STOP HERE (NAN HAS BEEN VERY GOOD. MOSTLY.)', 0.8, 0.4, 6.6, 1.05, 5.63, 0.0, { bg: '#c8102e', fg: '#fff', border: '#ffd84a', size: 44 }); }
   for (let z = FSTEP.z1 + 0.3; z < L.ROAD.z0 - 0.3; z += 0.7) for (const x of [FSTEP.x0 - 0.15, FSTEP.x1 + 0.15]) { k.cyl(0.012, 0.012, 0.3, x, 0.15, z, 0x2a2a2a, 5); k.cyl(0.04, 0.035, 0.05, x, 0.32, z, 0x2a2a2a, 8); bulb(k, x, 0.3, z, 0xfff2d0, 0.022, 0.12); }
-  // the back garden: neat, a slab path, a composite store, the gas bottles' cover, the rear hedge
-  T('hedge', L.BOUNDS.x0, -9.5, L.CLUB.x0 - 0.3, -8.8, 1.1, 0.55, 1); k.blockers.push({ x0: L.BOUNDS.x0, x1: L.CLUB.x0 - 0.3, z0: -9.5, z1: -8.8, y1: 1.1 });
-  { const x0 = -7.5, x1 = -5.0, z0 = -7.6, z1 = -6.2; R(x0, z0, x1, z1, 1.5, 0.75, 0x4a4c50, { block: true }); for (let x = x0 + 0.1; x < x1; x += 0.15) k.box(0.02, 1.4, 0.01, x, 0.72, z1 + 0.003, 0x3e4044); R(x0 - 0.05, z0 - 0.05, x1 + 0.05, z1 + 0.05, 0.05, 1.52, 0x2e3033); }
+  // the back garden: neat, a slab path, the washing line, TWO SHEDS in the back left-hand corner; hedges round it, the
+  // long back hedge with a little gate at the side path (no home behind Nan: just the hedge, then the green)
+  const hedge = (x0, z0, x1, z1, h = 1.1) => { T('hedge', x0, z0, x1, z1, h, h / 2, 1); k.blockers.push({ x0, x1, z0, z1, y1: h }); };
+  hedge(L.BOUNDS.x0, L.HEDGE.z0, PLOT.gate0, L.HEDGE.z1); hedge(PLOT.gate1, L.HEDGE.z0, L.CLUB.x0 - 0.3, L.HEDGE.z1);
+  hedge(PLOT.x0, L.HEDGE.z1, PLOT.x0 + 0.4, -2.6, 0.95); hedge(PLOT.x1 - 0.35, L.HEDGE.z1, PLOT.x1, -3.3, 0.95);     // down each side of her back garden
+  hedge(-11.6, L.PEBBLE.z1 + 0.15, -11.0, L.HEDGE.z0, 1.0);                                                           // the green's end (the next plot round)
+  { const gx = (PLOT.gate0 + PLOT.gate1) / 2, gz = (L.HEDGE.z0 + L.HEDGE.z1) / 2;                                   // the gate: two posts, a slatted grey gate swung open
+    for (const x of [PLOT.gate0 + 0.05, PLOT.gate1 - 0.05]) k.box(0.1, 1.15, 0.1, x, 0.575, gz, 0x4a4c50, { block: true });
+    for (let i = 0; i < 7; i++) k.box(0.13, 0.95, 0.03, PLOT.gate1 - 0.12, 0.55, gz - 0.12 - i * 0.15, 0x6a6c70);
+    for (const y of [0.25, 0.85]) k.box(0.05, 0.07, 1.05, PLOT.gate1 - 0.1, y, gz - 0.6, 0x55575b); void gx;
+    k.blockers.push({ x0: PLOT.gate1 - 0.16, x1: PLOT.gate1 - 0.06, z0: gz - 1.15, z1: gz - 0.05, y1: 1.0 }); }
+  // shed 1: an apex shed painted anthracite (a door with a little window, felt roof), right in the back left-hand corner
+  { const x0 = PLOT.x0 + 0.6, x1 = x0 + 2.5, z0 = L.HEDGE.z1 + 0.25, z1 = z0 + 2.0, eh = 1.85, ridge = 2.35, xm = (x0 + x1) / 2, SH = 0x3c4046;
+    R(x0, z0, x1, z1, eh, eh / 2, SH, { block: true });
+    for (let x = x0 + 0.12; x < x1; x += 0.14) k.box(0.012, eh - 0.1, 0.01, x, eh / 2, z1 + 0.004, 0x33363b);             // the boards
+    { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([x0, eh, z1, x1, eh, z1, xm, ridge, z1, x1, eh, z0, x0, eh, z0, xm, ridge, z0], 3)); g.computeVertexNormals(); k.parts.push(part(g, SH)); }
+    const half = (x1 - x0) / 2 + 0.15, slope = Math.atan2(ridge - eh, (x1 - x0) / 2), len = Math.hypot(half, (ridge - eh) * half / ((x1 - x0) / 2));
+    for (const s2 of [-1, 1]) k.box(len, 0.05, z1 - z0 + 0.3, xm + s2 * len / 2 * Math.cos(slope), (eh + ridge) / 2 + 0.03, (z0 + z1) / 2, 0x26282b, { rot: [0, 0, -s2 * slope] });
+    k.box(0.85, 1.65, 0.04, x1 - 0.75, 0.84, z1 + 0.02, 0x2f3237); k.box(0.45, 0.32, 0.045, x1 - 0.75, 1.3, z1 + 0.02, 0x7f97a8);
+    k.box(0.05, 0.05, 0.06, x1 - 0.42, 0.9, z1 + 0.05, 0xc8ccd0);
+    k.box(0.5, 0.35, 0.045, x0 + 0.65, 1.3, z1 + 0.02, 0x7f97a8); k.box(0.58, 0.05, 0.05, x0 + 0.65, 1.47, z1 + 0.03, 0xf5f5f3); k.box(0.58, 0.05, 0.05, x0 + 0.65, 1.12, z1 + 0.03, 0xf5f5f3);
+    k.box(0.5, 0.04, 0.5, x0 + 0.65, 0.02, z1 + 0.3, 0x8a8c88);
+    note("NAN'S SHED. GRANDAD'S TOOLS. TOUCH NOTHING.", 0.5, 0.14, x0 + 0.65, 0.95, z1 + 0.03, 0, '#fffbe8', '#222', 30); }
+  // shed 2: a smaller grey composite store beside it (lid and doors), the gas bottles' cover beside that
+  { const x0 = PLOT.x0 + 3.5, x1 = x0 + 2.0, z0 = L.HEDGE.z1 + 0.25, z1 = z0 + 1.35; R(x0, z0, x1, z1, 1.5, 0.75, 0x4a4c50, { block: true }); for (let x = x0 + 0.1; x < x1; x += 0.15) k.box(0.02, 1.4, 0.01, x, 0.72, z1 + 0.003, 0x3e4044); R(x0 - 0.05, z0 - 0.05, x1 + 0.05, z1 + 0.05, 0.05, 1.52, 0x2e3033);
+    k.box(0.02, 1.3, 0.02, (x0 + x1) / 2, 0.72, z1 + 0.012, 0x2a2c30);
+    R(x1 + 0.35, z0, x1 + 1.25, z0 + 0.6, 1.05, 0.525, 0x5a5c60, { block: true }); }
   { const x = 0.5, z = -6.0; k.cyl(0.05, 0.05, 1.8, x, 0.9, z, 0xc8ccd0, 8); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.3; k.box(1.3, 0.025, 0.025, x + Math.cos(a) * 0.65, 1.75, z + Math.sin(a) * 0.65, 0xc8ccd0, { rot: [0, -a, 0] }); } k.blockers.push({ x0: x - 0.1, x1: x + 0.1, z0: z - 0.1, z1: z + 0.1, y1: 1.8 }); }
   // a few neat round bushes and a cordyline or two along the plot's edges (Canvey's palm trees)
   const cordyline = (x, z, h = 1.6) => { k.cyl(0.07, 0.1, h, x, h / 2, z, 0x6a5440, 6); for (let i = 0; i < 16; i++) { const a = i * 2.4, e = 0.2 + (i % 4) * 0.35; const g = new THREE.ConeGeometry(0.035, 0.75, 3); g.translate(0, 0.37, 0); g.rotateZ(e); g.rotateY(a); k.parts.push(part(g, i % 2 ? 0x4a6a2a : 0x5a7a34, [x, h, z])); } k.blockers.push({ x0: x - 0.15, x1: x + 0.15, z0: z - 0.15, z1: z + 0.15, y1: h + 0.5 }); };
   cordyline(-9.8, 4.2); cordyline(9.9, 4.6, 1.9); cordyline(22.0, 6.6, 2.1); cordyline(-15.0, 4.5, 1.7);
   for (const [x, z, r] of [[-9.6, -4.0, 0.45], [-8.2, 3.6, 0.35], [8.7, 3.7, 0.35], [-4.5, -3.7, 0.3], [1.5, -3.6, 0.3]]) { k.parts.push(part(new THREE.IcosahedronGeometry(r, 1), 0x3a6a2a, [x, r * 0.8, z], [0, 0, 0], [1.2, 0.85, 1.2])); k.blockers.push({ x0: x - r, x1: x + r, z0: z - r, z1: z + r, y1: r * 1.5 }); }
-  // THE GREEN beside Nan's: clear grass, a bench at its far side, a tree, the green's own sign
-  { const bx = LAWN.x1 + 0.5, bz = -2.0; for (const s of [-1, 1]) k.box(0.5, 0.45, 0.06, bx, 0.23, bz + s * 0.8, 0x1e1f21); for (let i = 0; i < 4; i++) k.box(0.1, 0.03, 1.7, bx - 0.15 + i * 0.12, 0.46, bz, 0x2e2f31);
+  // THE GREEN behind Nan's hedge: clear grass along Pebble Road, a bench at its far end, a tree, the green's own sign
+  { const bx = LAWN.x1 + 0.5, bz = -15.0; for (const s of [-1, 1]) k.box(0.5, 0.45, 0.06, bx, 0.23, bz + s * 0.8, 0x1e1f21); for (let i = 0; i < 4; i++) k.box(0.1, 0.03, 1.7, bx - 0.15 + i * 0.12, 0.46, bz, 0x2e2f31);
     k.blockers.push({ x0: bx - 0.3, x1: bx + 0.3, z0: bz - 0.85, z1: bz + 0.85, y1: 0.9 }); k.seats.push({ x: bx, z: bz - 0.4, yaw: -Math.PI / 2, h: 0.47 }, { x: bx, z: bz + 0.4, yaw: -Math.PI / 2, h: 0.47 });
-    k.label('green', 1.2, 0.4, [LAWN.x1 + 0.5, 1.0, 4.3], [0, -Math.PI / 2, 0], { tex: TX.parkSignTex(['The Green', 'NO BALL GAMES. (FAMILY FLINGING: ASK JOAN.)'], { bg: '#4a4e55' }) });
-    for (const z of [3.85, 4.75]) k.box(0.05, 1.0, 0.05, LAWN.x1 + 0.5, 0.5, z, 0x26282a); k.blockers.push({ x0: LAWN.x1 + 0.4, x1: LAWN.x1 + 0.6, z0: 3.7, z1: 4.9, y1: 1.2 });
-    k.cyl(0.12, 0.18, 2.4, 21.9, 1.2, -7.2, 0x7a6a5a, 7); k.parts.push(part(new THREE.IcosahedronGeometry(1.4, 1), 0x4a6a32, [21.9, 3.2, -7.2], [0, 0, 0], [1, 1.1, 1])); k.blockers.push({ x0: 21.7, x1: 22.1, z0: -7.4, z1: -7.0, y1: 3 }); }
+    { const sx = PLOT.gate1 + 1.4, sz = L.HEDGE.z0 - 0.35, tex = TX.parkSignTex(['The Green', 'NO BALL GAMES. (FAMILY FLINGING: ASK JOAN.)'], { bg: '#4a4e55' });   // just through the gate
+      for (const d of [-1, 1]) k.label('green', 1.2, 0.4, [sx, 1.0, sz + d * 0.03], [0, d > 0 ? 0 : Math.PI, 0], { tex });
+      for (const x of [sx - 0.45, sx + 0.45]) k.box(0.05, 1.0, 0.05, x, 0.5, sz, 0x26282a); k.blockers.push({ x0: sx - 0.6, x1: sx + 0.6, z0: sz - 0.1, z1: sz + 0.1, y1: 1.2 }); }
+    const tx = LAWN.x1 + 1.6, tz = -11.2;
+    k.cyl(0.12, 0.18, 2.4, tx, 1.2, tz, 0x7a6a5a, 7); k.parts.push(part(new THREE.IcosahedronGeometry(1.4, 1), 0x4a6a32, [tx, 3.2, tz], [0, 0, 0], [1, 1.1, 1])); k.blockers.push({ x0: tx - 0.2, x1: tx + 0.2, z0: tz - 0.2, z1: tz + 0.2, y1: 3 }); }
 
   // ======================================================== INSIDE (built at floor level, lifted on to the floor)
   let hostSeat, quizSeats = [], dinnerSeats = [], STASH, TREE, DRINKS, KETTLE, TVINFO, flame = null, flameY = 0;
@@ -649,7 +682,8 @@ export function buildSandyBay(scene) {
     hall: { x0: -2.45, x1: P2, z0: -0.6, z1: FSTEP.z1 },
     bedrooms: { x0: HX0, x1: -2.45, z0: HZ0, z1: HZ1 },
     deck: { x0: DECK.x0, x1: DECK.x1, z0: DECK.z0, z1: HZ1 + 0.3 },
-    garden: { x0: LAWN.x0, x1: LAWN.x1, z0: LAWN.z0, z1: LAWN.z1 },
+    garden: { x0: PLOT.x0, x1: PLOT.x1, z0: L.HEDGE.z1, z1: HZ0 },
+    green: { x0: LAWN.x0, x1: LAWN.x1, z0: LAWN.z0, z1: LAWN.z1 },
     front: { x0: -13.2, x1: 12, z0: HZ1, z1: L.ROAD.z0 },
     road: { x0: BD.x0, x1: 46, z0: L.ROAD.z0, z1: L.ROAD.z1 },
     pool: { x0: L.CLUB.x0, x1: L.CLUB.x1, z0: -6.4, z1: L.CLUB.z1 },
@@ -670,7 +704,7 @@ export function buildSandyBay(scene) {
   room.tree = { x: TREE.x, z: TREE.z };
   room.drinks = DRINKS;
   room.lawn = LAWN;
-  room.gardenStart = { x: 12.6, z: 0.0, yaw: -Math.PI / 2 };
+  room.gardenStart = { x: LAWN.x0 + 1.2, z: -15.8, yaw: -Math.PI / 2 };      // the green's left-hand end, flinging down its length
   room.familyPhotos = photos;
   room.activities = [
     ...quizSeats.slice(0, 5).map(s => ({ x: s.x, z: s.z, yaw: s.yaw, pose: 'sit' })),

@@ -24,7 +24,9 @@ Local test: `python3 -m http.server 8000` in this folder, then open `http://loca
    - **The Cooks**: Joan (Nan)
 3. **Which house?**
    - **Nan's new house (Sandy Bay)**: her park home among the over-60s (and all her friends), with a lounge, kitchen-diner,
-     conservatory, a little garden and the neighbours' lights.
+     conservatory and the neighbours' lights. Laid out like the aerial photo of her plot: neighbours either side on Wave
+     Road, two sheds in the back left-hand corner of her garden, and no house behind her, just a long hedge with the green
+     verge along Pebble Road beyond it (Fling the Family is played down the green).
    - **Nan's old house (Tewkes Road)**: the family home where Karen and Lisa grew up, with the front room, the gas fire,
      the dining room, the kitchen, a long back garden and the height marks on the door frame.
 4. **What are we playing?** (below), then a quick summary, and you're in.
