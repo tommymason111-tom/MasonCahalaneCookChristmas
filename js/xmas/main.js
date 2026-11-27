@@ -108,7 +108,7 @@ if (SEL.mode === 'quiz' || SEL.mode === 'quick') mode = new Quiz(game, { quick: 
 else if (SEL.mode === 'hangry') mode = new Hangry(game);
 else if (SEL.mode === 'fling') mode = new Fling(game);
 hud.setMode(SEL.mode);
-window.XM = { game, mode, cast, player, room, scene, renderer, camera, items, sim: (dt) => frame(dt) };
+window.XM = { THREE, game, mode, cast, player, room, scene, renderer, camera, items, sim: (dt) => frame(dt) };
 
 // ---------------- eating ----------------
 const SNACK_WORDS = { mincepie: ['MINCE PIE!', 'FESTIVE!'], pigblanket: ['PIGGY!', 'BLANKET!'], roastie: ['CRUNCH!', 'ROASTIE!'], turkeyleg: ['GOBBLE!', 'TURKEY!'], pudding: ['PUD!', 'BRANDY!'],

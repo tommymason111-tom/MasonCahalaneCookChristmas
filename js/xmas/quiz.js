@@ -173,7 +173,7 @@ export class Quiz {
     this.score.karen += pts.karen; this.score.lisa += pts.lisa;
     g.hud.reveal(q.right, [this.myPick, q.teamPicks.karen, q.teamPicks.lisa].filter(x => x != null && x >= 0));
     g.hud.scores(this.score);
-    const mine = this.myTeam ? pts[this.myTeam] > 0 : null;
+    const mine = this.myTeam ? q.teamPicks[this.myTeam] === q.right : null;
     g.say('joan', `It's ${'ABCD'[q.right]}... ${q.answers[q.right]}!`, 5);
     setTimeout(() => { if (q.quip) { const who = q.quip.split(':')[0].trim().toLowerCase(); if (g.who(who)) g.say(who, q.quip.slice(q.quip.indexOf(':') + 1).trim().replace(/^'|'$/g, ''), 4); } }, 2200);
     // the teams react

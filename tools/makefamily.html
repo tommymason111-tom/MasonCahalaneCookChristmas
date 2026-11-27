@@ -4,7 +4,7 @@
 <script type="module">
 // Builds the people who have no 3D scan (Lisa, Michael, Sophie, Jimmy, Joan) with the Boxing Day quiz's procedural
 // body builder (tools/procbody/body.js), bakes each one into a single static mesh in its rest pose (arms down, facing
-// +Z, metres) and exports it as a GLB, plus the joint positions the game's ragdoll needs (`bind`).
+// +Z, metres) with its own skeleton and skin weights, and exports it as a rigged GLB, plus the joint positions the game's ragdoll needs (`bind`).
 // Run it with tools/makefamily.mjs, which saves assets/family/<id>.glb and prints the bind data.
 // ?show=1 draws them in a line-up instead.
 import * as THREE from 'three';
@@ -41,6 +41,7 @@ function bake(ch) {
   for (let i = 0; i < c.count; i++) { col[i * 3] = c.getX(i); col[i * 3 + 1] = c.getY(i); col[i * 3 + 2] = c.getZ(i); }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.setIndex(src.index.clone());
+  g.setAttribute('skinIndex', src.attributes.skinIndex.clone()); g.setAttribute('skinWeight', src.attributes.skinWeight.clone());      // (its own rig: the game uses these weights as they are)
   return g;
 }
 function bindOf(ch, spec) {
@@ -63,7 +64,9 @@ for (const [id, spec] of Object.entries(SPECS)) {
   const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, side: THREE.DoubleSide }));
   mesh.name = id;
   if (q.get('show')) { mesh.position.x = x; x += 1; scene.add(mesh); continue; }
-  const glb = await new GLTFExporter().parseAsync(mesh, { binary: true });
+  // exported WITH its skeleton (a rigged model): the game maps its bones onto the ragdoll by name
+  ch.mesh.geometry = geo; ch.mesh.material = mesh.material; ch.mesh.name = id;
+  const glb = await new GLTFExporter().parseAsync(ch.root, { binary: true });
   const u8 = new Uint8Array(glb); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
   out[id] = { glb: btoa(s), bind: bindOf(ch, spec), h: spec.height, tris: geo.index.count / 3 };
 }

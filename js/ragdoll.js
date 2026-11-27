@@ -91,6 +91,26 @@ export function skinOf(gltf, old) {
   return (gltf.__skin = out);
 }
 export const preloadModels = (urls) => Promise.allSettled(urls.map(fetchModel));
+// which of our 11 parts each bone of a rigged model belongs to, by its name (Mixamo, Blender, Character Creator, the
+// procedural people's own names: hips/spine/head, uArmL/lArmL, thighL/shinL...). Their left is our +X (L).
+export function rigMap(bones, defs) {
+  const ix = (nm) => defs.findIndex(d => d.name === nm);
+  return bones.map(b => {
+    const raw = String(b.name || ''), n = raw.toLowerCase().replace(/^.*[:|]/, '').replace(/[^a-z0-9_.]/g, '');
+    const side = /left/.test(n) ? 'L' : /right/.test(n) ? 'R' : /(^|[_.])l([_.]|$)|l$|_l\d*$/.test(n) ? 'L' : /(^|[_.])r([_.]|$)|r$|_r\d*$/.test(n) ? 'R' : null;
+    if (side && !/eye|lid|brow|ear$|cheek|lip/.test(n)) {
+      if (/forearm|lowerarm|lower_arm|larm|hand|finger|thumb|index|middle|ring|pinky|wrist/.test(n)) return ix('lArm' + side);
+      if (/upperarm|upper_arm|uarm|^arm|arm[lr]?$|leftarm|rightarm/.test(n)) return ix('uArm' + side);
+      if (/thigh|upleg|upperleg|upper_leg/.test(n)) return ix('uLeg' + side);
+      if (/shin|calf|lowerleg|lower_leg|knee|foot|toe|ankle|leg/.test(n)) return ix('lLeg' + side);
+      if (/shoulder|clavicle|collar/.test(n)) return ix('chest');
+    }
+    if (/head|jaw|eye|hair|brow|lid|face|nose|ear|teeth|tongue/.test(n)) return ix('head');
+    if (/hips|pelvis|root$|^root|hip$/.test(n) && !/thigh|upleg/.test(n)) return ix('pelvis');
+    if (/neck/.test(n)) return ix('chest');
+    return ix('chest');      // (spine, chest, anything unrecognised: the torso)
+  }).map(k => k < 0 ? 0 : k);
+}
 const legSide = (d) => d.name.includes('Leg') ? (d.name.endsWith('L') ? 1 : -1) : 0;
 
 // Bind pose (T-pose), measured from Tommy's model: metres, faces +Z, his left is +X.
@@ -324,14 +344,25 @@ export class Ragdoll {
     let src = null;
     gltf.scene.traverse(o => { if (o.isMesh && !src) src = o; });
     src.updateWorldMatrix(true, false);
+    const quantN = src.geometry.attributes.normal && !(src.geometry.attributes.normal.array instanceof Float32Array);      // (squashed into 8 bits: too rough for the smoothing up close)
     const geo = toFloat(src.geometry.clone());
+    if (quantN) { const { mergeVertices } = await import('three/addons/utils/BufferGeometryUtils.js'); const keep = geo.attributes.uv; geo.deleteAttribute('normal');
+      // smooth normals across the texture seams (welded by position for the sums, then copied back to every vertex)
+      const welded = mergeVertices(geo.clone().deleteAttribute('uv'), 1e-5); welded.computeVertexNormals();
+      const map = new Map(), wp = welded.attributes.position, wn = welded.attributes.normal, key = (x, y, z) => Math.round(x * 1e5) + ',' + Math.round(y * 1e5) + ',' + Math.round(z * 1e5);
+      for (let i = 0; i < wp.count; i++) map.set(key(wp.getX(i), wp.getY(i), wp.getZ(i)), i);
+      const gp = geo.attributes.position, N = new Float32Array(gp.count * 3);
+      for (let i = 0; i < gp.count; i++) { const j = map.get(key(gp.getX(i), gp.getY(i), gp.getZ(i))); if (j != null) { N[i * 3] = wn.getX(j); N[i * 3 + 1] = wn.getY(j); N[i * 3 + 2] = wn.getZ(j); } else N[i * 3 + 1] = 1; }
+      geo.setAttribute('normal', new THREE.BufferAttribute(N, 3)); if (keep) geo.setAttribute('uv', keep); }
     geo.applyMatrix4(src.matrixWorld);
     // a model made at any size (the family scans are 1 unit tall): stood on the floor, centred, scaled to the person's height
     // (centred on the torso, not the whole box: arms held out in front would pull the middle forward)
     if (this.fitModel) { geo.computeBoundingBox(); const b0 = geo.boundingBox, hh = b0.max.y - b0.min.y, k0 = this.height / hh, pa = geo.attributes.position;
-      let cx = 0, cz = 0, cn = 0; for (let i = 0; i < pa.count; i++) { const y = (pa.getY(i) - b0.min.y) / hh, x = pa.getX(i) - (b0.min.x + b0.max.x) / 2;
-        if (y > 0.5 && y < 0.72 && Math.abs(x) < 0.16 * hh) { cx += pa.getX(i); cz += pa.getZ(i); cn++; } }
-      if (cn) { cx /= cn; cz /= cn; } else { cx = (b0.min.x + b0.max.x) / 2; cz = (b0.min.z + b0.max.z) / 2; }
+      // (the middle of the chest, front to back, between the shoulders: a belly or a bust doesn't pull it forward)
+      let cx = 0, cn = 0, z0 = Infinity, z1 = -Infinity; for (let i = 0; i < pa.count; i++) { const y = (pa.getY(i) - b0.min.y) / hh, x = pa.getX(i) - (b0.min.x + b0.max.x) / 2;
+        if (y > 0.5 && y < 0.72 && Math.abs(x) < 0.16 * hh) { cx += pa.getX(i); cn++; }
+        if (y > 0.7 && y < 0.79 && Math.abs(x) < 0.08 * hh) { z0 = Math.min(z0, pa.getZ(i)); z1 = Math.max(z1, pa.getZ(i)); } }
+      cx = cn ? cx / cn : (b0.min.x + b0.max.x) / 2; const cz = z1 > z0 ? (z0 + z1) / 2 : (b0.min.z + b0.max.z) / 2;
       geo.translate(-cx, -b0.min.y, -cz); geo.scale(k0, k0, k0); }
     if (!geo.attributes.normal) geo.computeVertexNormals();
     const old = src.material;
@@ -381,6 +412,19 @@ export class Ragdoll {
     const pelvisIdx = this.defs.findIndex(d => d.name === 'pelvis'), hipJointY = this.defs.find(d => d.name === 'uLegL').a.y;
     const nrm = geo.attributes.normal, _n = new THREE.Vector3(), _c = new THREE.Vector3();
     const slotK = new Int32Array(this.defs.length + 2), slotW = new Float64Array(this.defs.length + 2);      // (one vertex's bones and weights)
+    // A RIGGED MODEL (its own skeleton and skin weights, e.g. from Mixamo, a scan app's auto-rig, or the procedural
+    // people): its weights are used as they are, each of its bones joined to the nearest of our 11 (by name), so the
+    // skin bends the way the model's maker meant and nothing is guessed. Anything else is weighted by the code below.
+    const rigW = src.isSkinnedMesh && src.skeleton && geo.attributes.skinIndex ? rigMap(src.skeleton.bones, this.defs) : null;
+    if (rigW) {
+      const si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, acc = new Float64Array(this.defs.length);
+      for (let i = 0; i < n; i++) {
+        acc.fill(0); for (let j = 0; j < 4; j++) { const w = sw.getComponent(i, j); if (w > 0) acc[rigW[si.getComponent(i, j)]] += w; }
+        const order = [...acc.keys()].filter(k => acc[k] > 0.001).sort((x, y) => acc[y] - acc[x]).slice(0, 4); let tot = 0; for (const k of order) tot += acc[k];
+        for (let j = 0; j < 4; j++) { const k = order[j]; skinIndex[i * 4 + j] = k ?? 0; skinWeight[i * 4 + j] = k == null ? 0 : acc[k] / (tot || 1); }
+      }
+      this.rigged = true; geo.deleteAttribute('skinIndex'); geo.deleteAttribute('skinWeight');
+    } else {
     for (let i = 0; i < n; i++) {
       _v.fromBufferAttribute(pos, i);
       if (nrm) _n.fromBufferAttribute(nrm, i);
@@ -401,6 +445,7 @@ export class Ragdoll {
         if (k === pelvisIdx && _v.y < hipJointY - 0.03 * kH && Math.abs(_v.x) > 0.03 * kH) ds[k] += 0.3;
         // arms don't own collars / hoods: nothing inboard of the shoulder joint, at or above it
         if (armSh[k] && _v.y > armSh[k].y - 0.08 * kH && Math.abs(_v.x) < Math.abs(armSh[k].x) - 0.035 * kH) ds[k] += 1;
+        if (armSh[k] && _v.y > neckY + 0.03 * kH && Math.abs(_v.x) < Math.abs(armSh[k].x) + 0.06 * kH) ds[k] += 1;      // (nor anything of the head: a T-posed arm's top is near the jaw)
         // thighs never own the torso (belly, shirt hem) above the hips
         if (sideOf[k] && this.defs[k].name.startsWith('uLeg') && _v.y > hipJointY + 0.05 * kH) ds[k] += 1;
         // legs never own skin from the other side of the body (legs pressed together)
@@ -428,7 +473,7 @@ export class Ragdoll {
       // (decided by position, not by nearest bone: the chest's thick capsule used to
       // claim the chin and mouth, splitting the face in two when the head turned)
       const headA = this.defs[headIdx].a, rh = Math.hypot(_v.x - headA.x, _v.z - headA.z);
-      const inHead = rh < 0.14 * kH && !this.defs[best].name.includes('Arm');
+      const inHead = (rh < 0.14 * kH || (rh < 0.2 * kH && _v.y > neckY + 0.07 * kH)) && !this.defs[best].name.includes('Arm');      // (well above the shoulders, a nose or a big jaw further forward is still head)
       if (best === headIdx || best === chestIdx || inHead) {
         const y = _v.y, lo = neckY - 0.045 * kH, hi = neckY + 0.025 * kH;
         if ((best === headIdx || inHead) && y >= hi) { ns = 1; slotK[0] = headIdx; slotW[0] = 1; }
@@ -510,6 +555,7 @@ export class Ragdoll {
       }
       if (cut) geo.setIndex(keep);
       this.cutTriangles = cut;
+    }
     }
     this.solidifyPieces(geo, skinIndex, skinWeight);
     this.measureHands(geo, skinIndex, skinWeight);

@@ -74,7 +74,7 @@ export const FAMILY = {
   },
   paul: {
     name: 'Paul', role: "Karen's husband · Tommy and Charli's dad", team: 'karen', color: '#c0392b', voicePitch: 0.6, emoji: '🙋', heavy: true,
-    model: './assets/family/paul.glb', modelBody: { h: H.paul, fit: true, girth: 1.25, bind: bindFromMarks(H.paul, { sh: [0.15, 0.807], el: [0.33, 0.807], ha: [0.495, 0.81] }, { girth: 1.2, hipX: 0.062 }) },
+    model: './assets/family/paul.glb', modelBody: { h: H.paul, fit: true, girth: 1.25, bind: bindFromMarks(H.paul, { sh: [0.14, 0.80], el: [0.31, 0.807], ha: [0.495, 0.81] }, { girth: 1.2, hipX: 0.062 }) },
     blurb: "Argues every answer. Was right once in 2009 and hasn't let it go.",
     banks: {
       greet: ["Merry Christmas, Joan! Where's the pigs in blankets? I'm joking. Where are they?", 'Michael! Michael. Has Lisa let you out?'],
