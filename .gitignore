@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+tests/node_modules/
+tests/results/
+crash-key-private/
+tools/node_modules

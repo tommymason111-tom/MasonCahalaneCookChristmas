@@ -1,0 +1,97 @@
+// cannon-es physics world for the ragdolls (Tommy) and Ronnie's hands.
+// Food keeps its own lightweight physics (foods.js); this world is only
+// for things that need real joints and contacts.
+import * as CANNON from 'cannon-es';
+import { ROOM } from './config.js';
+
+// Collision groups. Each character gets its own bit (so different characters
+// collide with each other, but a character's own limbs don't jam together).
+export const GROUP = { STATIC: 1, RAGDOLL: 2, HAND: 4, CHARS: 0x7ff0, LLEG: 1 << 15, RLEG: 1 << 16 };
+let nextChar = 0;
+export function characterGroup() { const g = 1 << (4 + (nextChar++ % 11)); return { group: g, mask: GROUP.STATIC | GROUP.HAND | (GROUP.CHARS & ~g) }; }
+
+export function createPhysics(room) {
+  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.81, 0) });
+  world.broadphase = new CANNON.SAPBroadphase(world);
+  // Only test pairs where something can actually be pushed. cannon-es skips static-with-static, but a character being
+  // animated (kinematic bodies) was still tested against the floor, the walls, every bit of furniture and every other
+  // character, every step: contacts between two things neither of which can move change nothing (their equations have
+  // no mass on either side), and they were most of the game's whole per-frame cost on a phone. Ragdolls (dynamic)
+  // collide with everything exactly as before.
+  { const DYN = CANNON.Body.DYNAMIC, base = CANNON.Broadphase.prototype.needBroadphaseCollision;
+    world.broadphase.needBroadphaseCollision = function (a, b) { if ((a.type & DYN) === 0 && (b.type & DYN) === 0) return false; return base.call(this, a, b); }; }
+  world.allowSleep = false;
+  world.solver.iterations = 16;
+  world.defaultContactMaterial.friction = 0.6;
+  world.defaultContactMaterial.restitution = 0.05;
+  world.defaultContactMaterial.contactEquationStiffness = 1e7;
+  world.defaultContactMaterial.contactEquationRelaxation = 4;
+
+  const addStatic = (shape, x, y, z, quat = null, lazy = false) => {
+    const b = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC, collisionFilterGroup: GROUP.STATIC, collisionFilterMask: GROUP.RAGDOLL | GROUP.CHARS });
+    b.addShape(shape);
+    b.position.set(x, y, z);
+    if (quat) b.quaternion.copy(quat);
+    if (lazy) addLazy(b, shape.halfExtents); else world.addBody(b);
+    return b;
+  };
+  // Big levels have thousands of furniture boxes. Only the ones near something that moves are kept in the
+  // physics world (checked a few times a second), so hitting people stays smooth however detailed the place is.
+  const CELL = 2, grid = new Map(), lazy = [], live = new Set();
+  const addLazy = (b, he) => { const e = { b, x0: b.position.x - he.x, x1: b.position.x + he.x, z0: b.position.z - he.z, z1: b.position.z + he.z };
+    lazy.push(e); for (let i = Math.floor(e.x0 / CELL); i <= Math.floor(e.x1 / CELL); i++) for (let j = Math.floor(e.z0 / CELL); j <= Math.floor(e.z1 / CELL); j++) { const k = i + ',' + j; (grid.get(k) || grid.set(k, []).get(k)).push(e); } };
+  let refreshT = 0;
+  const refresh = () => {
+    const want = new Set(), R = 1.6;
+    for (const body of world.bodies) { if (body.type !== CANNON.Body.DYNAMIC || body.sleepState === CANNON.Body.SLEEPING) continue; const p = body.position;      // (only things the physics is actually moving need the furniture)
+      for (let i = Math.floor((p.x - R) / CELL); i <= Math.floor((p.x + R) / CELL); i++) for (let j = Math.floor((p.z - R) / CELL); j <= Math.floor((p.z + R) / CELL); j++) {
+        const list = grid.get(i + ',' + j); if (!list) continue;
+        for (const e of list) if (p.x > e.x0 - R && p.x < e.x1 + R && p.z > e.z0 - R && p.z < e.z1 + R) want.add(e); } }
+    for (const e of live) if (!want.has(e)) { world.removeBody(e.b); live.delete(e); }
+    for (const e of want) if (!live.has(e)) { world.addBody(e.b); live.add(e); }
+  };
+
+  // floor, ceiling and four walls (planes face into the room)
+  const B = room.bounds || { x0: -ROOM.w / 2, x1: ROOM.w / 2, z0: -ROOM.d / 2, z1: ROOM.d / 2, y1: ROOM.h };
+  const q = (ax, ay, az, ang) => new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(ax, ay, az), ang);
+  addStatic(new CANNON.Plane(), 0, 0, 0, q(1, 0, 0, -Math.PI / 2));
+  addStatic(new CANNON.Plane(), 0, B.y1, 0, q(1, 0, 0, Math.PI / 2));
+  addStatic(new CANNON.Plane(), 0, 0, B.z0, null);
+  addStatic(new CANNON.Plane(), 0, 0, B.z1, q(0, 1, 0, Math.PI));
+  addStatic(new CANNON.Plane(), B.x0, 0, 0, q(0, 1, 0, Math.PI / 2));
+  addStatic(new CANNON.Plane(), B.x1, 0, 0, q(0, 1, 0, -Math.PI / 2));
+
+  // furniture: solid blocks + the surfaces food can sit on
+  for (const b of room.blockers) {
+    const h = b.y1 ?? 0.5;
+    addStatic(new CANNON.Box(new CANNON.Vec3((b.x1 - b.x0) / 2, h / 2, (b.z1 - b.z0) / 2)), (b.x0 + b.x1) / 2, h / 2, (b.z0 + b.z1) / 2, null, true);
+  }
+  for (const c of room.colliders) {
+    addStatic(new CANNON.Box(new CANNON.Vec3((c.max.x - c.min.x) / 2, (c.max.y - c.min.y) / 2, (c.max.z - c.min.z) / 2)),
+      (c.min.x + c.max.x) / 2, (c.min.y + c.max.y) / 2, (c.min.z + c.max.z) / 2, null, true);
+  }
+
+  let acc = 0;
+  const STEP = 1 / 90;
+  // something that was solid has gone (a chair picked up): drop its block from the world
+  const removeBox = (x0, x1, z0, z1) => {
+    for (let i = lazy.length - 1; i >= 0; i--) { const e = lazy[i]; if (Math.abs(e.x0 - x0) < 1e-3 && Math.abs(e.x1 - x1) < 1e-3 && Math.abs(e.z0 - z0) < 1e-3 && Math.abs(e.z1 - z1) < 1e-3) {
+      if (live.has(e)) { world.removeBody(e.b); live.delete(e); } lazy.splice(i, 1);
+      for (const list of grid.values()) { const j = list.indexOf(e); if (j >= 0) list.splice(j, 1); } } }
+  };
+  // ...and back again (the beer garden's patio furniture, put back after the Boss Fight)
+  const addBox = (x0, x1, z0, z1, h = 0.5) => addStatic(new CANNON.Box(new CANNON.Vec3((x1 - x0) / 2, h / 2, (z1 - z0) / 2)), (x0 + x1) / 2, h / 2, (z0 + z1) / 2, null, true);
+  return {
+    world, removeBox, addBox,
+    step(dt) {
+      // fixed timestep so the ragdoll behaves the same at 72fps, 90fps or on a phone
+      acc += Math.min(dt, 0.05);
+      if ((refreshT -= dt) <= 0) { refreshT = 0.15; refresh(); }
+      let n = 0;
+      while (acc >= STEP && n < 3) { world.step(STEP); acc -= STEP; n++; }
+      if (n === 3) acc = 0;                     // (never more than 3 catch-up steps a frame: no spiral when lots of people go flying)
+      return n;
+    },
+    STEP,
+  };
+}

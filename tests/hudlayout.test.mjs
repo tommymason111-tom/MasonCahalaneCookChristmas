@@ -1,0 +1,85 @@
+// THE SCREEN IN A ROOM, ON A PHONE: every busy mode with the multiplayer bits showing (the corner's buttons, the room
+// chip, a chat line, the voice button), portrait and on its side: no bit of text may sit on another, or off the screen,
+// and the Boss Fight has no top-left box (its own health bar says it all). VIEWS=390x844,844x390 MODES=garden/boss,...
+// (lib/textcheck.js reads every bit of text on the screen)
+import fs from 'fs';
+import { launch, newPage, sleep, checker } from './lib/game.mjs';
+import { startRoomHost } from './lib/roomhost.mjs';
+const CHECK = fs.readFileSync(new URL('./lib/textcheck.js', import.meta.url), 'utf8'), SHOTS = process.env.SHOTS || '';
+const LIST = (process.env.MODES || 'garden/boss,pub/everyone,pub/runpub,pub/imposter,shop/snd').split(',');
+const VIEWS = (process.env.VIEWS || '390x844,844x390').split(',').map(v => v.split('x').map(Number));
+export default async function () {
+  const C = checker('hudlayout'), host = await startRoomHost(), b = await launch();
+  try {
+    for (const [W, H] of VIEWS) for (const pm of LIST) { const [place, mode] = pm.split('/');
+      const p = await newPage(b, { width: W, height: H, mobile: true, warm: !!process.env.WARM });
+      try {
+        await p.addInitScript(() => { try { sessionStorage.setItem('rs_devmp_ok', '1'); } catch (e) {} });
+        await p.goto(`http://game.local/index.html?devmp=2&relay=${encodeURIComponent(host.url)}`, { timeout: 240000 });
+        await p.waitForFunction(() => { const m = window.ronnieMP; return m && m.net && m.net.players.size === 2 && [...m.net.players.values()].every(q => q.ready); }, null, { timeout: 90000 });
+        const ev = (f, a) => p.evaluate(f, a);
+        await ev(() => document.getElementById('room-go').click()); await sleep(500);
+        await ev((pl) => { document.querySelector(`.scene[data-id="${pl}"]`).click(); document.querySelector('.screen[data-s="place"] .bigbtn').click(); }, place); await sleep(600);
+        for (let k = 0; k < 4 && !(await ev((m) => { const f = document.querySelector(`.flip[data-id="${m}"]`); return !f || f.classList.contains('sel'); }, mode)); k++) { await ev((m) => document.querySelector(`.flip[data-id="${m}"]`).click(), mode); await sleep(350); }
+        await ev(() => { const n = document.querySelector('.screen.on[data-s="mode"] .bigbtn'); n && n.click(); }); await sleep(600);
+        await ev(() => document.getElementById('go').click());
+        await p.waitForFunction(() => { const r = document.querySelector('.screen[data-s="intro"].on #intro-ready'); if (r) r.click(); const st = document.getElementById('start'), g = window.RS && document.body.classList.contains('ready') && st && st.classList.contains('gone'); if (g) { const bt = document.querySelector('#play-flat'); if (bt && bt.offsetParent) bt.click(); } return g && !RS.player.menuLock; }, null, { timeout: 240000, polling: 700 });
+        if (mode === 'boss') await p.waitForFunction(() => document.querySelector('#boss-hud.on') && !document.body.classList.contains('boss-cine'), null, { timeout: 120000 }).catch(() => {});
+        await sleep(+(process.env.WAITS || 6000));
+        // a chat line or two, so the log shows
+        await ev(() => { const c = window.__fakes && window.__fakes.bots[0]; if (c) c.send({ t: 'chat', s: 'come on lads' }); });
+        await sleep(1500); await ev(() => window.__layoutHud && window.__layoutHud()); await sleep(400);
+        if (SHOTS) await p.screenshot({ path: `${SHOTS}/hud_${mode}_${W}.png` }).catch(() => {});
+        await ev(CHECK); const probs = (await ev(() => window.__textCheck())).filter(o => o.kind === 'text on text' || o.kind === 'off the side of the screen');
+        const info = await ev(() => ({ meter: !!(RS.player.wrist && RS.player.wrist.visible), warm: RS.warm && RS.warm() }));
+        console.log(`  ${W}x${H} ${mode}: top-left box ${info.meter} ${probs.length ? '\n    ' + probs.map(o => `${o.kind}: ${o.text} × ${o.by || ''} | ${o.where}`).join('\n    ') : 'no overlaps'}`);
+        for (const o of probs) C.ok(false, `${W}x${H} ${mode}: ${o.kind}: ${o.text} × ${o.by || ''} (${o.where})`);
+        // nothing over the touch buttons (the chat lines used to land on SPRINT with a phone on its side), and the
+        // Boss Fight shows no EMOTE button or room chip on a phone
+        const onBtns = await ev(() => { const box = (id) => { const e = document.getElementById(id); if (!e || !e.offsetParent || getComputedStyle(e).visibility === 'hidden') return null; const r = e.getBoundingClientRect(); return r.width ? r : null; };
+          const hit = (a, b) => a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+          return ['chat-log', 'mp-chip', 'boss-hud', 'imp-tasks', 'ph-feed', 'rp-events', 'rp-orders'].flatMap(i => ['btn-sprint', 'btn-emote', 'btn-eat', 'btn-throw', 'knob'].filter(j => hit(box(i), box(j))).map(j => `${i} on ${j}`)); });
+        C.ok(!onBtns.length, `${W}x${H} ${mode}: panels over the touch buttons: ${onBtns.join(', ')}`);
+        // THE MAP (minimap.js): the small one in the left column, clear of the corner's buttons and the touch buttons;
+        // the big one opened from it: its title, key and CLOSE on the screen with nothing on top of each other
+        if (mode === 'snd') {
+          // (into the round: the shop shut and the clock run on to LIVE)
+          await p.waitForFunction(() => { const s = RS.director.snd; return s && s.phase !== 'wait'; }, null, { timeout: 60000 }).catch(() => {});
+          await ev(() => { const s = RS.director.snd; s.closePicker(); if (s.H && s.phase === 'buy') s.H.ends = s.clock; });
+          await p.waitForFunction(() => RS.director.snd.phase === 'live', null, { timeout: 60000 }).catch(() => {}); await ev(() => RS.director.snd.closePicker()); await sleep(1500); await ev(() => window.__layoutHud && window.__layoutHud()); await sleep(400);
+          if (SHOTS) await p.screenshot({ path: `${SHOTS}/hud_live_${W}.png` }).catch(() => {});
+          { await ev(CHECK); const pr = (await ev(() => window.__textCheck())).filter(o => o.kind === 'text on text' || o.kind === 'off the side of the screen'); for (const o of pr) C.ok(false, `${W}x${H} snd live: ${o.kind}: ${o.text} × ${o.by || ''} (${o.where})`); }
+          const mm = await ev(() => { const box = (q) => { const e = document.querySelector(q); if (!e || getComputedStyle(e).display === 'none' || getComputedStyle(e).visibility === 'hidden') return null; const r = e.getBoundingClientRect(); return r.width ? r : null; };
+            const hit = (a, b) => a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top, m = box('#mm-mini');
+            return { on: !!m, hits: ['#menu-btn', '#chat-btn', '#vc-bar', '#mp-chip', '#btn-sprint', '#btn-emote', '#btn-crouch', '#knob', '#sd-top', '#sd-ui .fire', '#sd-ui .aim', '#chat-log'].filter(q => hit(m, box(q))) }; });
+          C.ok(mm.on && !mm.hits.length, `${W}x${H} snd: the small map isn't showing, or sits on: ${mm.hits.join(', ')}`);
+          await ev(() => document.getElementById('mm-mini').click()); await sleep(600);
+          await ev(CHECK); const mp2 = (await ev(() => window.__textCheck(document.getElementById('mm-full')))).filter(o => o.kind === 'text on text' || o.kind === 'off the side of the screen' || o.kind === 'cut off');
+          await ev(fs.readFileSync(new URL('./lib/btncheck.js', import.meta.url), 'utf8')); const bt = await ev(() => window.__btnCheck('#mm-full'));
+          const full = await ev(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(), x = r('#mm-full .x'), t = r('#mm-full .ttl'), k = r('#mm-full .key'), c = r('#mm-full canvas'); return { on: document.getElementById('mm-full').classList.contains('on'), xOnTitle: x.left < t.right && x.right > t.left && x.top < t.bottom && x.bottom > t.top, keyIn: k.bottom <= innerHeight && k.top >= c.bottom - 1, canvasIn: c.top >= 0 && c.bottom <= innerHeight && c.right <= innerWidth }; });
+          if (SHOTS) await p.screenshot({ path: `${SHOTS}/hud_map_${W}.png` }).catch(() => {});
+          C.ok(full.on && !full.xOnTitle && full.keyIn && full.canvasIn && !mp2.length && !bt.length, `${W}x${H} snd: the big map: ${JSON.stringify({ full, text: mp2.slice(0, 3), btn: bt.slice(0, 3) })}`);
+          await ev(() => document.querySelector('#mm-full .x').click()); }
+        if (mode === 'runpub' && H > W) { const rp = await ev(() => ['rp-orders', 'rp-events'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return { t: r.top, b: r.bottom, l: r.left, r: r.right }; }));
+          C.ok(Math.abs(rp[0].t - rp[1].t) < 2 && (rp[1].r <= rp[0].l || rp[0].r <= rp[1].l), `${W}x${H} runpub: ORDERS and TO DO aren't side by side: ${JSON.stringify(rp)}`);
+          C.ok(rp.every(q => q.b <= H * 0.36 + 2), `${W}x${H} runpub: ORDERS / TO DO run down into the middle of the screen: ${JSON.stringify(rp)}`);
+          // each folds away to its header with a tap there, and opens again (remembered)
+          for (const id of ['rp-orders', 'rp-events']) {
+            const hb = await ev((i) => { const r = document.querySelector(`#${i} [data-min]`).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, h: document.getElementById(i).getBoundingClientRect().height }; }, id);
+            await p.touchscreen.tap(hb.x, hb.y); await sleep(700);
+            const shut = await ev((i) => ({ h: document.getElementById(i).getBoundingClientRect().height, txt: document.querySelector(`#${i} [data-min]`).textContent, keep: localStorage.getItem(i === 'rp-orders' ? 'rs_rp_min_orders' : 'rs_rp_min_todo') }), id);
+            C.ok(shut.h < 46 && /\(\d+\)/.test(shut.txt) && shut.keep === '1', `${W}x${H} runpub: tapping ${id}'s header didn't fold it away: ${JSON.stringify(shut)} (was ${Math.round(hb.h)}px)`);
+            const hb2 = await ev((i) => { const r = document.querySelector(`#${i} [data-min]`).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }, id);
+            await p.touchscreen.tap(hb2.x, hb2.y); await sleep(700);
+            const open = await ev((i) => document.getElementById(i).getBoundingClientRect().height, id);
+            C.ok(open > shut.h + 10, `${W}x${H} runpub: tapping ${id}'s header again didn't open it (${Math.round(open)}px)`); } }
+        if (mode === 'boss' && (W < 760 || H < 500)) C.ok(await ev(() => { const v = (id) => { const e = document.getElementById(id); return !!e && !!e.offsetParent && getComputedStyle(e).visibility !== 'hidden' && e.classList.contains('show'); }; return !v('btn-emote') && getComputedStyle(document.getElementById('mp-chip')).display === 'none'; }), `${W}x${H} boss: the EMOTE button or the room chip is still on a phone's screen`);
+        if (mode === 'boss') C.ok(!info.meter, `${W}x${H} boss: the top-left box is showing (the boss's bar says it all)`);
+        if (W < 760 || H < 500) C.ok(await ev(() => document.body.classList.contains('compact-ui') && document.getElementById('menu-btn').textContent.trim() === '⏸'), `${W}x${H} ${mode}: the corner's buttons aren't the compact row`);
+        C.ok(!p.errors.length, `${W}x${H} ${mode}: errors ${p.errors.slice(0, 2).join(' | ')}`);
+      } catch (e) { C.ok(false, `${W}x${H} ${mode}: ${e.message.slice(0, 200)}`); }
+      await p.close();
+    }
+  } finally { await b.close(); await host.close(); }
+  return C.fails;
+}

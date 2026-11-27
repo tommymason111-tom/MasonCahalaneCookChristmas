@@ -1,0 +1,1222 @@
+// THE SQUAD (design doc Part 5, plus Connor and Ethan): Chloe, Lewis, Harry H, Aidan, Noah,
+// Oliver and Dylan. Everyone is trying to stop Ronnie. Nobody can.
+//
+// Each member is a physics ragdoll (same rig as Tommy) with a stylised body
+// built from shapes — heights, builds, hair, outfits, colours and props from
+// the doc — their own line banks, and their signature "intervention".
+// To swap in a real 3D model later, give them a GLB like Tommy's.
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Character, ballistic } from './character.js';
+import { Item } from './foods.js';
+import { pickVeg, pickJunk } from './config.js';
+import { sfx } from './audio.js';
+import { canvasTex, FONT } from './textures.js';
+import { seatInfo, sitLegs, seatArms, smoothPose } from './seating.js';
+import { playClip, fadeOut, poseAt } from './punteranims.js';
+
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _lq = new THREE.Quaternion(), _lx = new THREE.Vector3(1, 0, 0);
+// how long each signature move lasts (seconds)
+const ANNOUNCE_T = 2;   // how long the attack pop-up shows before the attack lands
+const SIGN_T = { knee: 1.6, beer: 1.9, dating: 5.5, pepsi: 1.6, jig: 6.5, yeet: 1.6, siu: 3.2, rod: 5.0, bbq: 1.8, diet: 1.8, flash: 1.3, oasis: 6.5, nutmeg: 1.3, turkey: 20.2 };
+const OASIS_LINES = ['♪ Today is gonna be the day... that you put down the pie ♪', '♪ And all the roads we have to walk... lead to the chippy ♪', '♪ Don\'t look back in anger, Ronnie... look back at the buffet ♪', '♪ You\'re gonna be the one that eats me... ♪', '♪ Some might say... you\'ve had enough ♪', '♪ Cast no shadow... you cast a BIG shadow, Ron ♪', 'Right, B-side next. No, don\'t move. DON\'T MOVE.'];
+const UP = new THREE.Vector3(0, 1, 0);
+
+// ---------------------------------------------------------------------------
+// Who's who
+// ---------------------------------------------------------------------------
+const SKIN = { light: 0xf1c3a5, fair: 0xf3cdb4, warm: 0xe5b08e, tan: 0xd9a07a };
+
+export const SQUAD = {
+  // Ronnie himself, full body (only ever a player in multiplayer: never one of the squad)
+  ronnie: {
+    name: 'Ronnie', color: '#ffd400', voicePitch: 0.85, playerOnly: true,
+    model: './assets/squad/ronnie.glb', modelBody: { h: 1.80, girth: 1.3, bind: { sh: [0.21, 1.44, 0.01], el: [0.52, 1.44, 0.02], ha: [0.89, 1.43, 0.03], hipX: 0.095, hipY: 0.9, kneeY: 0.47, neckY: 1.53, topY: 1.80, headZ: 0.01, chestW: 0.22, chestD: 0.17, pelvisW: 0.17, arm: 0.055, leg: 0.08 } },
+    body: { h: 1.80, sw: 1.05, girth: 1.3, limb: 1.0 },
+    look: { skin: SKIN.fair, hair: { style: 'short', color: 0x1a1410 }, top: 0x8ab4e0, sleeves: 'short', bottom: 0x8a8a8a, legs: 'shorts', shoes: 0xf5f5f5 },
+    banks: { hit: ['Oi!'], slap: ['OI!'] }, title: '', fail: '',
+  },
+  chloe: {
+    name: 'Chloe', color: '#B57BFF', voicePitch: 1.35,
+    model: './assets/squad/chloe.glb', modelBody: { h: 1.70, bind: { sh: [0.20, 1.38, 0], el: [0.44, 1.37, -0.03], ha: [0.85, 1.37, -0.04], hipX: 0.10, hipY: 0.86, kneeY: 0.47, neckY: 1.45, topY: 1.70, headZ: 0, chestW: 0.15, chestD: 0.10, pelvisW: 0.16, arm: 0.04, leg: 0.075 } },
+    body: { h: 1.70, sw: 0.9, girth: 0.88, limb: 0.85 },
+    look: { skin: SKIN.fair, hair: { style: 'long', color: 0x0d0b0b }, top: 0xb57bff, sleeves: 'long', hood: true, bottom: 0x15151a, legs: 'trousers', shoes: 0xf5f5f5, lips: 0xc0636b },
+    title: 'NAME THE FOOD', fail: 'named every snack. Ronnie ate every snack.',
+    banks: {
+      greet: ['Ronnie. Babe. We need to talk about the fridge.', 'Hi babe! I brought celery. Don\'t make that face.'],
+      chatter: ['Ronnie, babe, the waiter just asked if we\'re expecting more people. It\'s just us. It\'s just YOU.', 'I bought you a Fitbit. It sent me an apology.', 'We said we\'d go on a walk this weekend. To the shop doesn\'t count, Ronnie.', 'My mum asked what you\'re like. I said \'a lot\'.', 'I made you a salad. You looked at it like it owed you money.', 'Every time I open the fridge there\'s a little note saying \'Ronnie was here\'.', 'You\'re the love of my life. The second love of yours is a kebab, isn\'t it?', 'I\'m not angry, babe. I\'m just counting. Out loud.', 'That\'s Gerald. Gerald had a family.', 'I\'m not talking to you. I\'m talking to your belly. Hello, belly.', 'Did you know a group of chins is called a Ronnie? I made that up. It\'s still true.', '...anyway.', 'I had a dream you were a moon. I\'m starting to think it was a prophecy.', 'You\'re still my Ronnie. There\'s just... SO much more Ronnie.', 'I love every one of your chins. I\'ve named them. That one\'s Barry.'],
+      intervene: ['Ronnie. Put. It. Down.', 'We said one doughnut! ONE!', 'Salad ambush! It\'s for your own good, babe!'],
+      name: ['That\'s Gerald. Gerald had dreams, Ronnie.', 'This one\'s called Susan. Susan is a mother.', 'Meet Kevin. Kevin wanted to see the world.'],
+      guilt: ['He ate Gerald. He ATE GERALD.', 'Susan had KIDS, Ronnie!', 'Fine. FINE. Eat it. I\'ll just watch. Like a nature documentary.'],
+      hit: ['Ronnie! I\'m trying to SAVE you!', 'Did you just throw a doughnut at your GIRLFRIEND?', 'I\'m not angry. I\'m just... worried about the sofa.'],
+      slap: ['Ronnie! Babe! No!', 'That\'s it, you\'re sleeping on the sofa. If it survives.'],
+      grabbed: ['Ronnie, put me DOWN! I\'m your GIRLFRIEND, not a snack!'],
+      launched: ['RONNIIIIIIE!'],
+      vegThrow: ['Salad ambush! It\'s for your own good, babe!'],
+    },
+  },
+  lewis: {
+    name: 'Lewis', color: '#E8303A', voicePitch: 0.85,
+    model: './assets/squad/lewis.glb', modelBody: { h: 1.91, bind: { zOff: -0.15, sh: [0.24, 1.50, -0.15], el: [0.42, 1.31, -0.15], ha: [0.29, 1.27, 0.35], hipX: 0.12, hipY: 0.97, kneeY: 0.53, neckY: 1.60, topY: 1.91, headZ: -0.12, chestW: 0.22, chestD: 0.13, pelvisW: 0.17, arm: 0.06, leg: 0.085 } },
+    body: { h: 1.91, sw: 1.4, girth: 1.1, limb: 1.35 },
+    look: { skin: SKIN.warm, hair: { style: 'mullet', color: 0x5a3a22 }, beard: { style: 'patchy', color: 0x4a3020 }, top: 0xd32f2f, top2: 0x1565c0, pattern: 'vstripes', sleeves: 'none', bottom: 0x111111, legs: 'shorts', shoes: 0x222222, prop: 'jug' },
+    title: 'PROTEIN SWAP', fail: 'swapped the MONSTOR for protein. Ronnie bulked. Not like that.',
+    banks: {
+      greet: ['BRO. Bro. Put the pastry down, bro.', 'Ronnie! Leg day, bro! Not leg OF LAMB day!'],
+      chatter: ['Harry was sick in my outside bog, Ron. Missed the bowl. Hit the ladder. HOW do you hit the ladder?', 'Shift at the Oysterfleet later, Ron. I\'ll change the barrels, you stay AWAY from the crisp clip.', 'The Gaffer says if either of us eats another bar snack we\'re both sacked. So it\'s on you, bro.', 'Best thing about working the Oysterfleet with you, Ron? I get my cardio chasing you out of the kitchen.', 'Leg day, Ron? Every day\'s leg day for you, bro. Carrying all that.', 'Creatine, protein, chicken and rice. You? Creatine, protein, chicken, rice, chips, cheese, a doughnut.', 'I could deadlift you, bro. I\'d need a forklift, but I could.', 'Bro, I\'ve got a spare gym pass. It\'s got your name on it. In my handwriting. Use it.', 'My dad thinks protein shakes are \'for wrong\'uns\'. He\'s had six of mine.', 'Pump\'s insane today, Ronnie. Look at this vein. Don\'t look at your plate, look at the vein.', 'Palace on the telly later? I\'ll bring the chicken. YOU bring the self-control.', 'My dad\'s here somewhere. If anyone shouts LEWY, that\'s him. Ignore him. Please.', 'Look at these arms, Ron. These could be YOUR arms. Not like that though.', 'I benched 140 this morning. You benched a family-size lasagne.', 'My beard? It\'s growing, bro. It\'s a slow grower. Like your self-control.', 'Palace are going up, bro. Like your cholesterol.', 'Ronnie, you\'re not bulking. You\'re just bulk.', 'Tommy, mate, your abs are cute. Mine are just... bigger. Under here. Somewhere.'],
+      intervene: ['Protein swap, bro! Proper fuel! No more MONSTOR!', 'Shakes on the table, bro. Gains only.'],
+      shake: ['Bro, my protein shakes are for GAINS, not for... oh. Oh, you\'ve gained.', 'Bro... you\'re bulking. Not like that, bro.'],
+      hit: ['Is that it, bro?', 'Didn\'t even hurt. I\'m just trying to help, bro.'],
+      slap: ['Bro! Not the face, bro! The face is for the gram!'],
+      grabbed: ['Bro! Bro! Put me down, bro, I\'m 110 kilos of pure muscle, bro!'],
+      launched: ['BROOOOOOOO—'],
+      vegThrow: ['Greens, bro! Eat your greens!'],
+    },
+  },
+  harry: {
+    name: 'Harry H', color: '#7A1F3D', voicePitch: 1.15,
+    model: './assets/squad/harry.glb', modelBody: { h: 1.83, bind: { sh: [0.20, 1.44, 0], el: [0.26, 1.19, 0], ha: [0.27, 0.76, 0.05], hipX: 0.11, hipY: 0.92, kneeY: 0.50, neckY: 1.53, topY: 1.82, headZ: 0.05, chestW: 0.17, chestD: 0.13, pelvisW: 0.15, arm: 0.05, leg: 0.07 } },
+    body: { h: 1.83, sw: 0.95, girth: 0.82, limb: 0.78 },
+    look: { skin: SKIN.light, hair: { style: 'shortcurls', color: 0x1a1210 }, beard: { style: 'stubble', color: 0x1a1210 }, top: 0x1d2b5a, top2: 0xffffff, pattern: 'jersey', sleeves: 'short', bottom: 0x2b3a55, legs: 'trousers', shoes: 0xf5f5f5, cap: 0x7a1f3d, scarf: true, prop: 'phone' },
+    title: 'CATCH & EAT', fail: 'threw the food away. Ronnie caught it in his mouth. Every time.',
+    banks: {
+      greet: ['Ronnie, my guy, I\'ve matched with SIX girls this week. Six! None of them have replied, but SIX.'],
+      chatter: ['Don\'t go in Lewy\'s outside toilet, Ron. I was sick in there. Twice. Same night.', 'In my defence, Lewy\'s toilet moved. I aimed for it and it moved.', 'Ian made me clean Lewy\'s bog with a garden hose. I still hear it at night.', 'There\'s a sign about me in Lewy\'s toilet now. A SIGN, Ron. I\'m a warning.', 'I got a match last night, Ron! She\'s a vegan. I said I\'d give it a go. I lasted till lunch.', 'West Ham fan, single, 6 foot. Well, 5\'11. And a half. In boots.', 'My mates say I\'ve got the rizz of a wet sock. My mum says I\'m handsome. My mum\'s right.', 'Swipe right on that pasty, Ronnie? You don\'t swipe, you SWALLOW.', 'I\'m throwing food AWAY from you, Ron. Long-term thinking. Like my love life. No, wait.', 'Bubbles, Ronnie. Forever blowing bubbles. Not burping them. BLOWING them.', 'Date tonight. Where should I take her? Not anywhere you\'ve been, they\'ve run out of everything.', 'She said she likes tall guys. I\'m tall! She said she likes guys with abs... I\'m tall!', 'Her bio said "no time-wasters". So I\'ve wasted no time messaging her forty times.', 'West Ham till I die, Ron. Which, with your cooking, could be soon.', 'Ronnie, if you were on a dating app, your profile pic would need to be a panorama.', 'Ronnie, you\'d make an amazing offensive lineman. You\'re already offensive. And a line. A wide line.'],
+      intervene: ['HAIL MARY! I\'m throwing this as FAR away from you as possible!', 'Hut! Hut! HUT! Get it away from him!'],
+      caught: ['TOUCHDOWN! Wait, no, that\'s a doughnut. And it\'s gone.', 'INTERCEPTION! ...and he\'s handed it straight back to Ronnie. Terrible decision.', 'He caught it IN HIS MOUTH. The crowd goes wild. I go home.'],
+      hit: ['Still got the phone! I\'m just trying to help!'],
+      slap: ['Ow! My dating face!'],
+      grabbed: ['Ronnie, mate, I\'m six foot! You can\'t just pick up six foot!'],
+      launched: ['HAIL MAAAARY—'],
+      vegThrow: ['Long pass! Sprouts incoming!'],
+    },
+  },
+  aidan: {
+    name: 'Aidan', color: '#2E7D32', voicePitch: 0.8,
+    model: './assets/squad/aidan.glb', modelBody: { h: 1.78, bind: { sh: [0.21, 1.44, 0], el: [0.28, 1.17, 0], ha: [0.28, 0.69, 0.08], hipX: 0.10, hipY: 0.89, kneeY: 0.49, neckY: 1.50, topY: 1.78, headZ: 0.04, chestW: 0.19, chestD: 0.13, pelvisW: 0.16, arm: 0.06, leg: 0.08 } },
+    body: { h: 1.78, sw: 1.0, girth: 1.0, limb: 1.0 },
+    look: { skin: SKIN.fair, hair: { style: 'tucked', color: 0x111111 }, beard: { style: 'full', color: 0x111111 }, top: 0x7a1f3d, top2: 0x7ec8e3, pattern: 'sleeves2', sleeves: 'long', bottom: 0x2a3b5c, legs: 'trousers', shoes: 0x4a3020, prop: 'pint' },
+    title: 'JUST THE ONE', fail: 'suggested a quiet one. Lost his pint.',
+    banks: {
+      greet: ['Ronnie. Lad. Sit down. Let\'s have a quiet one and talk about this.'],
+      chatter: ['Just the one, Ronnie. Just the one. That\'s what I said in 2016 and I\'m still out.', 'A proper pint takes 119 seconds to pour. You\'ve had three in that time.', 'Irons till I die, Ron. Well. Irons till last orders.', 'My brother Connor thinks he\'s the funny one. He is. Don\'t tell him.', 'Pint of plain is your only man, Ronnie. Plain. Not plain, a burger and chips.', 'Settle, Ron. Let it settle. The pint, I mean. You can\'t settle. You never settle.', 'I\'ve seen a lot of things in my life, Ronnie. I\'ve never seen a man eat a bar stool.', 'The beard\'s got crisps in it, hasn\'t it. You\'re looking at the beard. Don\'t look at the beard.', 'Come on you Irons. Come on, Ronnie, slow down.', 'You\'re the only man I know who orders a pint and a pie and then eats the pub.', 'My nan was from Cork. She\'d have fed you. She\'d have regretted it.', 'My little brother Connor supports Liverpool. We don\'t talk about it at Christmas.', 'Connor says he\'s the better-looking brother. Connor says a lot of things.'],
+      intervene: ['Just the one, Ronnie. Here. Let it settle first. Patience.', 'Right. Intervention time. Let\'s be grown-ups about this.'],
+      settle: ['You have to let it settle, Ronnie. Patience.', 'Let it settle...', 'Nearly...'],
+      drank: ['That\'s a lovely pint. That WAS a lovely pint.', 'You have to let it settle, Ronnie. ...and he\'s drunk it. Mine. That was mine.', 'Ah, now you\'re getting it.'],
+      snap: ['RONNIE! PUT! THE! BAR! DOWN! ...sorry. Anyway.'],
+      hit: ['Didn\'t spill a drop. I\'m just trying to help.'],
+      slap: ['...was that necessary, Ronnie.'],
+      grabbed: ['Mind the pint. Mind the PINT, Ronnie.'],
+      launched: ['Not a drop spilt— whoaaaa—'],
+    },
+  },
+  noah: {
+    name: 'Noah', color: '#C62828', voicePitch: 0.75,
+    model: './assets/squad/noah.glb', modelBody: { h: 1.73, girth: 1.5, bind: { zOff: -0.03, sh: [0.25, 1.42, -0.03], el: [0.34, 1.17, -0.03], ha: [0.37, 0.80, 0], hipX: 0.13, hipY: 0.86, kneeY: 0.47, neckY: 1.48, topY: 1.72, headZ: -0.01, chestW: 0.25, chestD: 0.18, pelvisW: 0.20, arm: 0.07, leg: 0.10 } },
+    body: { h: 1.73, sw: 1.35, girth: 1.7, limb: 1.25 },
+    koMul: 1.8,
+    look: { skin: SKIN.warm, hair: { style: 'short', color: 0x5a3a22 }, beard: { style: 'stubble', color: 0x5a3a22 }, top: 0xc62828, top2: 0xffffff, pattern: 'hoops', sleeves: 'short', bottom: 0x1b1b1b, legs: 'shorts', shoes: 0x111111 },
+    title: 'THE TACKLE', fail: 'tackled Ronnie. Bounced off.',
+    banks: {
+      greet: ['Right, Ronnie, I\'ve brought half-time oranges. HEALTHY.', 'Alright Ron! Fancy some exercise? Rugby? Rugby. Rugby?'],
+      chatter: ['Rugby\'s a gentleman\'s game, Ronnie. Played by hooligans. Watched by you, eating.', 'Glory glory Man United! Glory glory Ronnie\'s lunch!', 'I\'ve hit rucks softer than your fridge door, Ron.', 'Scrum down! ...Ronnie, that\'s not a scrum, that\'s the buffet queue.', 'Coach says I need to bulk. I said I know a guy. I pointed at you.', 'Line-out, Ron! Throw it in! No. Don\'t eat the ball. DON\'T EAT THE—', 'Proper front-row forward, me. You\'d be a whole front row on your own.', 'I\'ve tackled props, I\'ve tackled locks, I\'ve never tackled a man with his own moon.', 'United would never let a player get this big. Well. Except the wages.', 'Chelsea fan, eating like this? Typical.', 'Crouch... bind... SET! ...he\'s eaten the ball.'],
+      intervene: ['Right, Ronnie, I\'m coming in. Brace!', 'TACKLE! It\'s for your own good, mate!'],
+      bounced: ['I bounced off you, mate. I BOUNCED. Like a bouncy castle full of gravy.', 'Good hit! I\'m just trying to help!'],
+      tackled: ['Got him! Food\'s down! ...he\'s picked it back up.', 'TRY! ...no. No, that\'s him eating.'],
+      hit: ['Good hit! I\'m just trying to help!', 'Barely felt it, Ron!'],
+      slap: ['That\'s a yellow card, Ronnie!'],
+      grabbed: ['How are you LIFTING me?! I\'m a prop! PROPS DON\'T FLY!'],
+      launched: ['SCRUUUUUM—'],
+      vegThrow: ['Half-time oranges! Well, carrots! Catch!'],
+    },
+  },
+  oliver: {
+    name: 'Oliver', color: '#00B8D4', voicePitch: 1.1,
+    model: './assets/squad/oliver.glb', modelBody: { h: 1.75, girth: 1.15, bind: { sh: [0.21, 1.43, 0], el: [0.30, 1.17, 0], ha: [0.30, 0.70, 0.05], hipX: 0.11, hipY: 0.88, kneeY: 0.48, neckY: 1.50, topY: 1.75, headZ: 0.04, chestW: 0.20, chestD: 0.13, pelvisW: 0.17, arm: 0.06, leg: 0.08 } },
+    body: { h: 1.75, sw: 1.0, girth: 1.0, limb: 0.95 },
+    look: { skin: SKIN.light, hair: { style: 'curtains', color: 0x6b4423 }, beard: { style: 'full', color: 0x5a3a22 }, glasses: true, top: 0xffd600, top2: 0x0d47a1, pattern: 'polo', sleeves: 'short', bottom: 0x111111, legs: 'trousers', shoes: 0x111111, prop: 'phone' },
+    title: 'SHAME CAM', fail: 'filmed Ronnie to shame him. It went viral.',
+    banks: {
+      greet: ['Hey guys, welcome back to the channel. Today: can my mate Ronnie NOT eat something? Spoiler: no.'],
+      chatter: ['I work at Lidl, Ron. I\'ve seen you in the middle aisle at 7am. I\'ve seen things.', 'Staff discount\'s 10 percent. You\'d bankrupt the company with 10 percent.', 'Spurs are \'in transition\', Ronnie. Like your trousers. From medium to... not.', 'I\'ve clipped you eating a whole quiche. 2.4 million views. You\'re welcome.', 'The self-checkout knows your face, Ron. It says \'unexpected item\' before you walk in.', 'Should I do a \'what Ronnie eats in a day\' video? It\'d be eleven hours long.', 'Hit subscribe. Hit the bell. Don\'t hit me, Ronnie.', 'Like, comment and subscribe, and pray for the bakery section.', 'Spurs are rebuilding, Ronnie. Like your sofa.', 'This is content. This is GOLD. This is also a crime.', 'Guys, he\'s eaten the self-checkout. He IS the unexpected item.', 'I\'ve got an idea. What if we put you on a diet... live? Ten million views. Easy.'],
+      intervene: ['Shame cam is LIVE. Ronnie, everyone can see you. Put it down.', 'Guys, I\'m filming my mate to shame him into stopping. Let\'s go.'],
+      viral: ['Ronnie, you\'ve just gained ten thousand followers. And ten pounds.', 'It\'s trending. RONNIE FOR PM is trending.', 'The followers LOVE you. Why do they love you?!'],
+      hit: ['Got it! In 4K! I\'m just trying to help... the algorithm.'],
+      slap: ['Not the phone! NOT THE PHONE!'],
+      grabbed: ['Guys, I\'m being held hostage by the content. Like and subscribe.'],
+      launched: ['This is going on the chaaaannel—'],
+    },
+  },
+  dylan: {
+    name: 'Dylan', color: '#FF6D00', voicePitch: 1.25,
+    model: './assets/squad/dylan.glb', modelBody: { h: 1.65, bind: { sh: [0.17, 1.35, 0], el: [0.26, 1.08, 0], ha: [0.32, 0.72, 0.04], hipX: 0.10, hipY: 0.83, kneeY: 0.46, neckY: 1.40, topY: 1.66, headZ: 0.01, chestW: 0.16, chestD: 0.11, pelvisW: 0.15, arm: 0.045, leg: 0.07 } },
+    body: { h: 1.65, sw: 0.9, girth: 0.82, limb: 0.82 },
+    look: { skin: SKIN.light, hair: { style: 'short', color: 0x111111 }, beard: { style: 'goatee', color: 0x1a1210 }, top: 0x5b5a3a, top2: 0x7a1f3d, pattern: 'parka', sleeves: 'long', bottom: 0x2a3b5c, legs: 'trousers', shoes: 0xf5f5f5, shades: true },
+    title: 'THE AMBUSH', fail: 'ambushed Ronnie from a bin. Was found in a bin.',
+    banks: {
+      greet: ['RONNIEEEEEEE!', 'West Ham, Oasis and attacking Ronnie. The three loves of my life.'],
+      chatter: ['Ronnie. Wonderwall. Acoustic. Right now. You eat, I\'ll play.', 'Liam would\'ve eaten that kebab with more ATTITUDE, Ron.', 'Definitely Maybe, Ronnie. Definitely maybe you should stop eating.', 'Champagne supernova? Nah. Chips and gravy supernova.', 'I\'m small, Ron, I\'m quick, I\'m everywhere. Like crumbs on your shirt.', 'Don\'t look back in anger, Ronnie. Look back at the empty plates.', 'I\'ll hide in a bin if I have to. I\'ve done it before. Don\'t ask.', 'You know what\'s better than that kebab, Ronnie? OASIS. Everything is worse than Oasis.', 'Second album\'s the best, Ronnie, don\'t even start. DON\'T. START.', 'Ronnie, if you were an Oasis album, you\'d be a double album. Triple. Box set.', 'Listen. LISTEN. This one\'s my own song. It\'s called "Don\'t Eat The Fridge, Ron".'],
+      intervene: ['...not yet... not yet... NOW!', 'RONNIEEEEEEE! I\'VE GOT HIM! I\'VE GOT HIM!'],
+      cling: ['I\'m on you now! I live here now!', 'I\'ll bite you. I\'ll actually bite you. I\'m just trying to help!'],
+      shaken: ['AGAIN! DO IT AGAIN! ...I mean, I\'m just trying to help.'],
+      hit: ['AGAIN! DO IT AGAIN!'],
+      slap: ['Ha! HA! Is that all you\'ve got?!'],
+      grabbed: ['Put me DOWN! I\'ll bite! I WILL BITE!'],
+      launched: ['WONDERWAAAA— I mean, AAAAARGH—'],
+      vegThrow: ['CELERY GRENADE!'],
+    },
+  },
+  connor: {
+    name: 'Connor', color: '#C8102E', voicePitch: 0.82,
+    model: './assets/squad/connor.glb', modelBody: { h: 1.80, girth: 1.25, bind: { sh: [0.22, 1.40, 0], el: [0.52, 1.39, 0], ha: [0.88, 1.38, 0], hipX: 0.12, hipY: 0.90, kneeY: 0.50, neckY: 1.50, topY: 1.80, headZ: 0.03, chestW: 0.23, chestD: 0.15, pelvisW: 0.19, arm: 0.055, leg: 0.085 } },
+    body: { h: 1.80, sw: 1.1, girth: 1.2, limb: 1.05 },
+    look: { skin: SKIN.fair, hair: { style: 'short', color: 0x3a2618 }, beard: { style: 'short', color: 0x3a2618 }, glasses: true, top: 0x14182a, sleeves: 'short', bottom: 0x8a8f98, legs: 'trousers', shoes: 0xf5f5f5, prop: 'pint' },
+    title: 'THE ROUND', fail: 'bought a round to slow Ronnie down. Ronnie drank the round.',
+    banks: {
+      greet: ['Ronnie! Get in here, lad. Aidan\'s brother, at your service. The better-looking one.', 'Alright Ron. Pint? Course you will.'],
+      chatter: ['Liverpool, Ronnie. Six European Cups. You\'ve had six breakfasts.', 'Back home in Ireland they\'d have you on a farm. As the farm.', 'Aidan says he\'s the sensible one. He\'s had more pints than me today. He\'s the sensible one.', 'Up the Reds, Ron! Up the... no, sit down, you\'ll take the table with you.', 'Liverpool are the greatest club on Earth, Ronnie. You\'re the greatest club sandwich.', 'Our mammy says Aidan was the quiet one. I was the one who could finish a pint. You\'re the one who finishes the pub.', 'You\'ll never walk alone, Ronnie. Mostly because you can\'t fit through doors on your own.', 'A proper pint of stout is a meal in a glass, Ron. That\'s not a challenge.', 'Me and Aidan have been arguing about who\'s the older brother for thirty years. He is. He just looks it.', 'Anfield on a European night, Ronnie. The noise. Nearly as loud as your stomach.'],
+      intervene: ['Right, Ronnie, my round! Two of the black stuff. Sip it slow, like a gentleman.', 'Lads, I\'ll handle this. Nothing slows a man down like a proper Irish stout.'],
+      settle: ['Let it settle now. Patience, Ronnie. Patience.', 'One for you, one for me. Not one for Aidan.'],
+      drank: ['He drank MY one as well. Aidan, your mate is a menace.', 'Ah, that was a lovely pint. Lovely. For you.', 'You\'ve drunk it faster than Salah runs, Ron.'],
+      snap: ['You didn\'t even let it SETTLE! There are rules, Ronnie! Our grandad would weep!'],
+      hit: ['Ah, come here! I\'m just trying to help, ya big eejit!', 'Not the glasses, Ronnie! Not the glasses!'],
+      slap: ['That\'s a red card, Ronnie. Straight red.'],
+      grabbed: ['Put me down! I\'m Irish, we don\'t fly, we drink!'],
+      launched: ['YOU\'LL NEVER WALK ALOOOOONE—'],
+      vegThrow: ['Have a sprout, Ron! It\'s like a tiny cabbage. You love cabbage. You love everything.'],
+    },
+  },
+  ethan: {
+    name: 'Ethan', color: '#FEBE10', voicePitch: 1.0,
+    model: './assets/squad/ethan.glb', modelBody: { h: 1.78, girth: 1.2, bind: { sh: [0.20, 1.40, 0], el: [0.50, 1.40, 0], ha: [0.88, 1.39, 0], hipX: 0.12, hipY: 0.88, kneeY: 0.48, neckY: 1.45, topY: 1.78, headZ: 0.03, chestW: 0.20, chestD: 0.14, pelvisW: 0.18, arm: 0.055, leg: 0.09 } },
+    body: { h: 1.78, sw: 1.05, girth: 1.15, limb: 1.1 },
+    look: { skin: SKIN.warm, hair: { style: 'short', color: 0x1a1210 }, top: 0x111111, sleeves: 'short', bottom: 0xd8d8d8, legs: 'shorts', shoes: 0xf5f5f5, shades: true },
+    title: 'GALÁCTICO FREE KICK', fail: 'curled three free kicks at Ronnie. Ronnie ate the wall.',
+    banks: {
+      greet: ['¡Hola, Ronnie! Yes, I\'m from Essex. Yes, I support Real Madrid. Yes, it\'s a big nose. Next question.', 'Ronnie! I smelt you coming. I smelt the kebab before you, actually.'],
+      chatter: ['Vinícius would never, Ronnie. Bellingham would never. You would. You did.', 'Pepsi Max, Ron. No sugar. No calories. No idea why you\'re looking at me like that.', 'My nose gets in every photo before me. Your belly does the same.', 'Real Madrid in the final again, Ron. You in the fridge again.', 'Hala Madrid, Ronnie. Fifteen Champions Leagues. You\'ve had fifteen breakfasts.', 'Everyone jokes about my nose. Fine. At least you can see my nose. Nobody\'s seen your neck since 2019.', 'My nose can smell a pasty from three postcodes away, Ron. Right now it\'s smelling YOU.', 'People say "why Real Madrid, you\'re from England?" Because I like winning, Ronnie. You should try it. Against a sandwich.', 'I don\'t need a snorkel on holiday. I\'ve got a nose. You don\'t need a lilo. You\'ve got a belly.', 'The Bernabéu holds eighty-odd thousand, Ron. Or about forty of you.'],
+      intervene: ['Galáctico free kick! Stand still, Ronnie, you\'re the wall!', 'Set piece, Ron! Curling one in. It\'s broccoli. It\'s for your health.'],
+      hit: ['Not the nose! Anything but the nose! There\'s a LOT of it to hurt!', 'Ow! I\'m just trying to help, Ronnie!'],
+      slap: ['You\'ve just slapped a Real Madrid fan. That\'s a diplomatic incident.'],
+      grabbed: ['Put me down! My nose is the heaviest part, I\'ll tip over!'],
+      launched: ['HALA MADRIIIIID—'],
+      vegThrow: ['Free kick! Top bins!', 'Curled it! Like Roberto Carlos!'],
+    },
+  },
+  ian: {
+    name: 'Ian', color: '#6B8E23', voicePitch: 0.72,
+    model: './assets/squad/ian.glb', modelBody: { h: 1.78, girth: 1.3, bind: { sh: [0.22, 1.42, 0], el: [0.50, 1.41, 0], ha: [0.88, 1.42, 0], hipX: 0.11, hipY: 0.86, kneeY: 0.48, neckY: 1.47, topY: 1.78, headZ: 0.08, chestW: 0.21, chestD: 0.15, pelvisW: 0.18, arm: 0.06, leg: 0.09 } },
+    body: { h: 1.78, sw: 1.1, girth: 1.3, limb: 1.0 },
+    look: { skin: SKIN.fair, hair: { style: 'short', color: 0xbdbdbd }, beard: { style: 'full', color: 0xd0d0d0 }, top: 0x3a3020, sleeves: 'long', bottom: 0x4a5a2a, legs: 'trousers', shoes: 0x555555, cap: 0x8a9a7a, prop: 'rod' },
+    title: 'THE HEALTHY BARBECUE', fail: 'fired up a "healthy" barbecue of grilled veg. Ronnie ate the burgers off the side.',
+    banks: {
+      greet: ['Alright Ronnie boy! Lewy said you\'d be here. Lewy says a lot of things.', 'Ronnie! Come round ours Sunday, I\'m doing the barbecue. Not for you. Well. A bit for you.'],
+      chatter: [
+        'I caught a carp this big up the lake once. Then a swan had a go at me. Canvey\'s lawless, Ronnie.', 'Lewy\'s mum says I\'m not allowed to talk about the council at dinner. I\'m not at dinner, Ronnie.', 'You lot think you\'re funny. I was funny before any of you were born. Ask Lewy\'s nan.', 'Everyone\'s offended these days. I\'m offended by how much you\'ve eaten. Simple as.', 'Bring your own meat Sunday, Ronnie. No. Don\'t bring your own meat. We\'ll have none left.',
+        'Lewy! LEWY! Tell your mate to put the sausage down. That\'s for the barbecue.',
+        'Canvey Lake, Ronnie. Disgrace. Nobody looks after it. Shopping trolleys. A bike. I pulled out a whole sofa once. Nice sofa, actually.',
+        'Went fishing up the lake Saturday. Caught nothing. The fish have all moved out, can\'t blame \'em.',
+        'Proper fisherman\'s breakfast, Ron: tea, a roll-up and silence. You\'d eat the bait.',
+        'I know all you lot. Harry, Noah, Ollie, Dylan, the Irish lads. And you, Ronnie. Mostly I know your appetite.',
+        'Back in my day we didn\'t have protein shakes, Lewy. We had a pint and a fry-up and we were FINE.',
+        'Everyone\'s too soft these days, Ronnie. Can\'t say anything. I\'m going to say it anyway. You\'re massive, son.',
+        'My barbecue\'s legendary. Ask anyone. Ask Ronnie, he ate half of it raw while it was still on the coals.',
+        'The council wants to "rewild" the lake. Rewild it? Ronnie, it\'s already wild. There\'s a pike in there the size of you.',
+        'Lewy, stop flexing at the mirror and get the charcoal. LEWY!',
+      ],
+      intervene: ['Right! Healthy barbecue! Grilled peppers, corn on the cob, the lot! Catch, Ronnie!', 'Fire\'s lit! Have some veg, boy! It\'s been on the grill, it counts as meat!'],
+      hit: ['Oi! I\'m Lewy\'s dad! Show some respect!', 'You\'ve got a worse arm than the Canvey Lake council!'],
+      slap: ['That\'s assault, that is. I\'m telling Lewy.'],
+      grabbed: ['PUT ME DOWN! I\'ve got a bad back! I\'ve had a bad back since 1987!'],
+      launched: ['LEEEEWYYYYY—'],
+      vegThrow: ['Off the grill! Lovely bit of char on that!', 'Healthy burger! It\'s a pepper!'],
+    },
+  },
+  alfie: {
+    name: 'Alfie', color: '#034694', voicePitch: 1.05,
+    model: './assets/squad/alfie.glb', modelBody: { h: 1.80, girth: 1.1, bind: { sh: [0.20, 1.45, 0], el: [0.50, 1.44, 0], ha: [0.90, 1.43, 0], hipX: 0.11, hipY: 0.92, kneeY: 0.50, neckY: 1.52, topY: 1.80, headZ: 0.01, chestW: 0.19, chestD: 0.13, pelvisW: 0.16, arm: 0.05, leg: 0.08 } },
+    body: { h: 1.80, sw: 1.05, girth: 1.1, limb: 1.05 },
+    look: { skin: SKIN.light, hair: { style: 'short', color: 0x3a2618 }, beard: { style: 'short', color: 0x3a2618 }, top: 0xa0101e, sleeves: 'short', bottom: 0x111111, legs: 'shorts', shoes: 0xf5f5f5, prop: 'pint' },
+    title: 'THE VOLLEY', fail: 'volleyed four vegetables at Ronnie. Ronnie headed them all into his mouth.',
+    banks: {
+      greet: ['RONNIE! Blues brothers! Come on Chelsea!', 'Ron! Pint? Pint. Course. Then the football. Then another pint.'],
+      chatter: [
+        'Chelsea are building something, Ron. Like your second chin.', 'Got a tattoo of the Champions League trophy. Took longer than our actual season.', 'Half-time oranges, Ronnie! Wait, you\'ve already eaten them. And the bag.', 'Sunday league ref sent me off for \'excessive celebration\'. One pint. On the pitch.', 'Blue is the colour, Ronnie! Football is the game! Food is... clearly your other game.',
+        'Me and you, Ron. Chelsea till we die. Which for you could be any minute, the rate you\'re going.',
+        'Got a new tattoo, Ronnie. Want to see it? It\'s a lion. Like the badge. Like you at a buffet.',
+        'I started a back piece once. Massive dragon. Got two hours in and tapped out. It\'s just a tail now. A dragon\'s tail. On its own.',
+        'Played Sunday league yesterday. Scored one, missed four, had three pints at half-time. Perfect day.',
+        'Stamford Bridge holds forty thousand, Ron. You\'d fit in about thirty thousand of the seats.',
+        'Who needs a back tattoo when you\'ve got a back that size, Ronnie? It\'s a whole canvas!',
+        'Proper Chelsea fan, me. I\'ve suffered. Not as much as the chairs you sit on, mind.',
+        'One more pint and I\'ll show you my Cole Palmer celebration. It\'s mainly shivering.',
+      ],
+      intervene: ['Right, Ron! Volley practice! Get your head on these!', 'Watch this! Top bins! Well. Top Ronnie.'],
+      hit: ['Not the tattoos! They\'re still healing! Well, the one is!', 'Oof! You\'ve got a better touch than our left back.'],
+      slap: ['Yellow card, Ronnie. Do it again and it\'s a red. Then a pint.'],
+      grabbed: ['Ronnie! I\'ve got football Sunday! Put me DOWN!', 'Careful! Mind the tattoos!'],
+      launched: ['CAREFREEEEE, WHEREVER YOU MAY BEEEE—'],
+      vegThrow: ['VOLLEY!', 'Off the laces!', 'Get your head on it, Ron!'],
+    },
+  },
+  aidanw: {
+    name: 'Aidan W', color: '#132257', voicePitch: 1.05, stayPut: true,
+    model: './assets/squad/aidanw.glb', modelBody: { h: 1.68, girth: 1.1, bind: { sh: [0.20, 1.36, 0], el: [0.48, 1.37, 0], ha: [0.78, 1.37, 0], hipX: 0.10, hipY: 0.85, kneeY: 0.47, neckY: 1.44, topY: 1.68, headZ: 0.03, chestW: 0.19, chestD: 0.14, pelvisW: 0.16, arm: 0.05, leg: 0.08 } },
+    body: { h: 1.68, sw: 0.95, girth: 1.05, limb: 0.9 },
+    look: { skin: SKIN.light, hair: { style: 'short', color: 0x3a2618 }, top: 0x132257, sleeves: 'short', bottom: 0x222222, legs: 'trousers', shoes: 0xf5f5f5 },
+    title: 'THE KNEE', fail: 'told Ronnie about his knee for so long Ronnie ate the physio\'s leaflet.',
+    banks: {
+      greet: ['Alright Ron. Don\'t ask me to get up. It\'s the knee.'],
+      chatter: [
+        'My knee\'s killing me, Ron. No, the other one. No, both now.',
+        'I\'d come over but, you know. The knee.',
+        'Physio says rest it. So I\'m resting it. Professionally.',
+        'I work at Lidl with Ollie. I do the tills. Sitting down. Because of the knee.',
+        'Spurs, mate. Spurs. Me and Ollie suffer together. It\'s basically a support group.',
+        'We\'re rebuilding, Ron. We\'ve been rebuilding since I was nine.',
+        'Miles Morales is the best Spider-Man and I will not be taking questions.',
+        'If I got bitten by a radioactive spider my first power would be a new knee.',
+        'I pulled a holo shiny out of a pack yesterday. Best day of my year. Spurs-wise it was a low bar.',
+        'Don\'t touch my binder, Ron. Those cards are sleeved. Your fingers are not sleeved.',
+        'Mint condition. Like my knee isn\'t.',
+        'Could someone bring that over? I can\'t walk. Knee.',
+        'I was going to go to the gym but my knee said no. My knee says no to most things.',
+        'Ollie says it\'s all in my head. It\'s in my KNEE, Ollie.',
+        'Spurs are one good season away from a good season.',
+      ],
+      intervene: ['RON. Ron. Come here. Have I told you about my knee?', 'Ronnie, stop. Sit. Listen. It started in 2019...'],
+      hit: ['Now you know how my knee feels. Every day.'],
+      slap: ['NOT THE KNEE! ...that was my face. Fine.'],
+      grabbed: ['Mind the knee! MIND THE KNEE!'],
+      launched: ['MY KNEEEEEE—'],
+    },
+  },
+  ben: {
+    name: 'Ben', color: '#2f6fd6', voicePitch: 0.95,
+    model: './assets/squad/ben.glb', modelBody: { h: 1.80, girth: 1.2, bind: { sh: [0.20, 1.40, 0], el: [0.50, 1.38, 0], ha: [0.90, 1.37, 0], hipX: 0.11, hipY: 0.88, kneeY: 0.48, neckY: 1.53, topY: 1.80, headZ: 0.05, chestW: 0.20, chestD: 0.14, pelvisW: 0.17, arm: 0.055, leg: 0.08 } },
+    body: { h: 1.80, sw: 1.05, girth: 1.2, limb: 1.05 },
+    look: { skin: SKIN.light, hair: { style: 'short', color: 0x4a2a16 }, top: 0xa8957a, sleeves: 'long', bottom: 0x4a6a9a, legs: 'trousers', shoes: 0xf5f5f5 },
+    title: 'THE TRIP TO TURKEY', fail: 'took Ronnie to Turkey for a new hairline. Ronnie came back with a new hairline and four kebabs.',
+    banks: {
+      greet: ['Ronnie! Kitchen\'s closed, mate. To YOU. Kitchen\'s closed to you.', 'Alright Ron! Notice anything? The hairline, Ron. Look at the HAIRLINE.'],
+      chatter: [
+        'I\'m a chef, Ronnie. I cook food for PEOPLE. Plural. Not person. Not you.',
+        'Remember when we worked the Oysterfleet together? I\'d plate up, you\'d "taste test". Whole plate. Every time.',
+        'Got my hairline done in Turkey, Ron. Best money I ever spent. You should go. Actually, let me take you.',
+        'Chelsea, Ronnie! Blue is the colour! Same as my face when I saw what you did to the walk-in fridge.',
+        'Mise en place, Ron. Everything in its place. Your place is not the dessert section.',
+        'Yes it\'s real. Yes it\'s all mine now. It\'s called a hairline, Ronnie. Look it up.',
+        'I can do a Michelin-star dish in twelve minutes. You can eat one in four seconds.',
+        'Lewis still owes me a shift at the Oysterfleet. He says he was "bulking". He was eating the bar snacks.',
+        'Back in the kitchen, the ticket would say "TABLE 6: RONNIE" and we\'d all just sigh.',
+      ],
+      intervene: ['Right Ron, passports. We\'re going to Turkey.', 'Pack a bag, Ronnie. Istanbul. You\'re getting the full hairline.'],
+      hit: ['Not the hair! Do you know what that COST?', 'Mind the grafts, Ronnie! MIND THE GRAFTS!'],
+      slap: ['Yes chef! ...No, that\'s not how you say it, Ron.'],
+      grabbed: ['Careful with the head! There are four thousand follicles up there!'],
+      launched: ['MY HAIRLIIIIINE—'],
+      vegThrow: ['Fresh from the kitchen, Ron!', 'Chef\'s special: a carrot!'],
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Building a stylised body (rigid-skinned to the ragdoll bones: one draw call)
+// ---------------------------------------------------------------------------
+function prep(geo, color, boneIndex, matrix, colorFn = null) {
+  let g = geo.index ? geo.toNonIndexed() : geo;
+  g.deleteAttribute('uv');
+  if (matrix) g.applyMatrix4(matrix);
+  const n = g.attributes.position.count, pos = g.attributes.position;
+  const cols = new Float32Array(n * 3), c = new THREE.Color(color), c2 = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const cc = colorFn ? colorFn(pos.getX(i), pos.getY(i), pos.getZ(i), c2) || c : c;
+    cols[i * 3] = cc.r; cols[i * 3 + 1] = cc.g; cols[i * 3 + 2] = cc.b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  const si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) { si[i * 4] = boneIndex; sw[i * 4] = 1; }
+  g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4));
+  g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+  return g;
+}
+// matrix that places a Y-axis primitive between points a and b
+function between(a, b, scaleXZ = [1, 1]) {
+  const d = _v2.subVectors(b, a), len = d.length();
+  const q = new THREE.Quaternion().setFromUnitVectors(UP, d.clone().normalize());
+  return { len, m: new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(0.5), q, new THREE.Vector3(scaleXZ[0], 1, scaleXZ[1])) };
+}
+const at = (x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
+
+function buildBody(rag, look) {
+  const defs = rag.defs, idx = (n) => defs.findIndex(d => d.name === n), D = (n) => defs[idx(n)];
+  const parts = [];
+  const add = (geo, color, bone, m, fn) => parts.push(prep(geo, color, idx(bone), m, fn));
+  const k = rag.height / 1.68;
+  const skin = look.skin, hairC = look.hair?.color ?? 0x222222;
+  const c1 = new THREE.Color(look.top), c2 = new THREE.Color(look.top2 ?? look.top);
+
+  // ---- torso (chest bone) ----
+  const ch = D('chest'), pel = D('pelvis');
+  const tw = ch.half[0], td = ch.half[2];
+  const torsoFn = {
+    vstripes: (x) => (Math.floor((x + 1) / (0.035 * k)) % 2 ? c1 : c2),
+    hoops: (x, y) => (Math.floor(y / (0.06 * k)) % 2 ? c1 : c2),
+    jersey: (x, y) => (y > ch.b.y - 0.07 * k || Math.abs(x) > tw * 0.82 ? c2 : c1),
+    polo: (x, y) => (y > ch.b.y - 0.05 * k ? c2 : c1),
+    check: (x, y) => ((Math.floor((x + 1) / (0.045 * k)) + Math.floor(y / (0.045 * k))) % 2 ? c1 : c2),     // a checked shirt
+    hawaii: (x, y, z) => (Math.sin(x * 61) * Math.sin(y * 53) * Math.sin(z * 47) > 0.25 ? c2 : c1),     // loud holiday shirt
+    sleeves2: null, parka: null,
+  }[look.pattern] || null;
+  // an open jacket / cardigan / tracksuit top over the top: the front left open (the top showing through) and a hen
+  // party's sash across the chest
+  const jC = look.jacket != null ? new THREE.Color(look.jacket) : null, sashC = look.sash != null ? new THREE.Color(look.sash) : null;
+  const torsoCol = (x, y, z, out) => {
+    if (sashC && z > 0 && Math.abs((x - (y - ch.a.y) * 0.55 + 0.06 * k)) < 0.035 * k) return sashC;
+    if (jC && !(z > td * 0.3 && Math.abs(x) < tw * (look.zip ? 0.06 : 0.3))) return jC;
+    return torsoFn ? torsoFn(x, y, z, out) : null;
+  };
+  {
+    // torso: a capsule exactly as tall as the chest bone, squashed to the right width/depth
+    const H = (ch.b.y - ch.a.y) + 0.04 * k, r = Math.min(tw, H * 0.32), len = H - 2 * r;
+    const torso = (rr, col, fn, extra = 1) => add(new THREE.CapsuleGeometry(rr, len, 8, 32), col, 'chest', at(0, (ch.a.y + ch.b.y) / 2 - 0.03 * k, 0, tw / rr * 0.95 * extra, 1, td / rr * 1.15 * extra), fn);
+    torso(r, look.top, (jC || sashC) ? torsoCol : torsoFn, jC ? 1.04 : 1);
+    if (jC && !look.zip) for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.05 * k, 0.16 * k, 0.012 * k), new THREE.Color(look.jacket).multiplyScalar(0.85).getHex(), 'chest', at(sx * tw * 0.34, ch.b.y - 0.11 * k, td * 1.12, 1, 1, 1, 0.12, sx * 0.25, sx * 0.35));   // lapels
+    if (look.gut) add(new THREE.SphereGeometry(tw * 0.85, 14, 10), jC && !look.zip ? look.top : look.top, 'chest', at(0, ch.a.y + 0.08 * k, td * 0.55, 1, 0.8, 0.75 * look.gut), torsoFn);     // a proper beer belly out front
+    if (look.chain) add(new THREE.TorusGeometry(0.07 * k, 0.006 * k, 5, 20), look.chain, 'chest', at(0, ch.b.y - 0.045 * k, td * 0.42, 1, 1, 0.75, Math.PI / 2 - 0.5));
+    if (look.logo != null) add(new THREE.CircleGeometry(0.022 * k, 10), look.logo, 'chest', at(tw * 0.42, ch.b.y - 0.1 * k, td * 1.17, 1, 1, 1));
+    if (look.tie != null) { add(new THREE.BoxGeometry(0.035 * k, 0.2 * k, 0.012 * k), look.tie, 'chest', at(0, ch.b.y - 0.13 * k, td * 1.15)); add(new THREE.BoxGeometry(0.03 * k, 0.03 * k, 0.015 * k), look.tie, 'chest', at(0, ch.b.y - 0.025 * k, td * 1.05)); }
+    if (look.hood) add(new THREE.SphereGeometry(0.11 * k, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), look.top, 'chest', at(0, ch.b.y - 0.04 * k, -td * 0.9, 1, 0.6, 0.7, -0.4));
+    if (look.pattern === 'parka') {   // big parka with a fur-trimmed hood
+      torso(r, look.top, null, 1.1);
+      add(new THREE.TorusGeometry(0.1 * k, 0.03 * k, 8, 16), 0xb59a6a, 'chest', at(0, ch.b.y - 0.02 * k, -td * 0.7, 1, 1, 1, Math.PI / 2.3));
+      add(new THREE.BoxGeometry(0.06 * k, len * 0.9, 0.01), look.top2, 'chest', at(0, (ch.a.y + ch.b.y) / 2, td * 1.27));
+    }
+    if (look.scarf) add(new THREE.TorusGeometry(0.075 * k, 0.025 * k, 8, 16), 0x7a1f3d, 'chest', at(0, ch.b.y - 0.01 * k, 0, 1, 1, 1, Math.PI / 2), (x) => (Math.floor((x + 1) / (0.03 * k)) % 2 ? new THREE.Color(0x7a1f3d) : new THREE.Color(0x7ec8e3)));
+    // neck
+    add(new THREE.CylinderGeometry(0.045 * k, 0.05 * k, 0.08 * k, 10), skin, 'chest', at(0, ch.b.y + 0.01 * k, 0.005));
+  }
+  // ---- pelvis / skirt ----
+  {
+    const ph = pel.half;
+    const col = look.legs === 'bare' ? look.bottom : look.bottom;
+    const pr = Math.min(ph[0], ph[1] * 1.1);
+    add(new THREE.CapsuleGeometry(pr, Math.max(0.01, ph[1] * 2.2 - 2 * pr), 6, 20), col, 'pelvis', at(0, (pel.a.y + pel.b.y) / 2, 0, ph[0] / pr * 0.95, 1, ph[2] / pr * 1.1));
+    if (look.skirt) add(new THREE.CylinderGeometry(ph[0] * 0.95, ph[0] * 1.5, (look.dress ? 0.42 : 0.3) * k, 16, 1, true), look.skirt, 'pelvis', at(0, pel.a.y - (look.dress ? 0.14 : 0.08) * k, 0), null);
+    if (look.belt != null) { add(new THREE.CylinderGeometry(ph[0] * 1.02, ph[0] * 1.02, 0.03 * k, 18, 1, true), look.belt, 'pelvis', at(0, pel.b.y - 0.03 * k, 0, 1, 1, ph[2] / ph[0] * 1.12)); add(new THREE.BoxGeometry(0.05 * k, 0.035 * k, 0.01 * k), 0xc8a848, 'pelvis', at(0, pel.b.y - 0.03 * k, ph[2] * 1.12)); }
+  }
+  // ---- arms ----
+  for (const s of ['L', 'R']) {
+    const ua = D('uArm' + s), la = D('lArm' + s);
+    const sleeveCol = look.sleeves === 'none' ? skin : look.pattern === 'sleeves2' ? look.top2 : look.top;
+    const ur = ua.t * 0.95 / 1.04, lr = la.t * 0.95 / 0.95;
+    { const { len, m } = between(ua.a, ua.b); add(new THREE.CylinderGeometry(ur, ur * 0.95, len, 10), skin, 'uArm' + s, m); }
+    if (look.sleeves !== 'none') {
+      const end = ua.a.clone().lerp(ua.b, look.sleeves === 'long' ? 1 : 0.55);
+      const { len, m } = between(ua.a.clone().lerp(ua.b, -0.08), end); add(new THREE.CylinderGeometry(ur * 1.18, ur * 1.12, len, 10), jC && look.sleeves === 'long' ? look.jacket : sleeveCol, 'uArm' + s, m);
+    }
+    // shoulder ball
+    add(new THREE.SphereGeometry(ur * 1.25, 10, 8), look.sleeves === 'none' ? skin : sleeveCol, 'uArm' + s, at(ua.a.x, ua.a.y, ua.a.z));
+    const ink = look.tattoo && look.sleeves !== 'long' && (look.tattoo === 'both' || look.tattoo === s) ? new THREE.Color(0x3a4a6a) : null, skinC = new THREE.Color(skin);
+    { const { len, m } = between(la.a, la.b.clone().lerp(la.a, 0.22)); add(new THREE.CylinderGeometry(lr * 0.85, lr, len, 10), look.sleeves === 'long' ? (jC ? look.jacket : sleeveCol) : skin, 'lArm' + s, m, ink ? (x, y, z) => (Math.sin(x * 140) * Math.sin(y * 90 + z * 120) > 0.1 ? ink : skinC) : null); }
+    if (look.watch != null && s === 'L') { const wp = la.b.clone().lerp(la.a, 0.25), { m } = between(wp.clone().lerp(la.a, 0.04), wp); add(new THREE.CylinderGeometry(lr * 0.92, lr * 0.92, 0.025 * k, 10), look.watch, 'lArm' + s, m); }
+    // hand
+    const hp = la.b.clone().lerp(la.a, 0.12);
+    add(new THREE.SphereGeometry(0.045 * k, 10, 8), skin, 'lArm' + s, at(hp.x, hp.y, hp.z, 1.3, 0.75, 1));
+  }
+  // ---- legs ----
+  for (const s of ['L', 'R']) {
+    const ul = D('uLeg' + s), ll = D('lLeg' + s);
+    const ur = ul.t * 1.1, lr = ll.t * 1.15;
+    const upperCol = look.legs === 'bare' ? skin : look.bottom;
+    const lowerCol = look.legs === 'trousers' ? look.bottom : skin;
+    { const { len, m } = between(ul.a.clone().add(_v.set(0, 0.04 * k, 0)), ul.b); add(new THREE.CylinderGeometry(ur, ur * 0.85, len, 10), upperCol, 'uLeg' + s, m); }
+    if (look.legs === 'shorts') { const { len, m } = between(ul.a.clone().add(_v.set(0, 0.05 * k, 0)), ul.a.clone().lerp(ul.b, 0.6)); add(new THREE.CylinderGeometry(ur * 1.2, ur * 1.15, len, 10), look.bottom, 'uLeg' + s, m); }
+    { const { len, m } = between(ll.a, ll.b.clone().add(_v.set(0, 0.05 * k, -0.03 * k))); add(new THREE.CylinderGeometry(lr * 0.9, lr * 0.7, len, 10), lowerCol, 'lLeg' + s, m); }
+    add(new THREE.SphereGeometry(lr * 0.95, 8, 6), lowerCol, 'lLeg' + s, at(ll.a.x, ll.a.y, ll.a.z));
+    // shoe
+    add(new THREE.BoxGeometry(0.1 * k, 0.07 * k, 0.24 * k), look.shoes, 'lLeg' + s, at(ll.b.x, 0.035 * k, 0.04 * k));
+    if (look.sole != null) add(new THREE.BoxGeometry(0.106 * k, 0.022 * k, 0.25 * k), look.sole, 'lLeg' + s, at(ll.b.x, 0.011 * k, 0.04 * k));      // trainers: a thick white sole
+  }
+  // ---- head ----
+  {
+    const hd = D('head'), c = hd.center, R = hd.sphere * 0.82;
+    add(new THREE.SphereGeometry(R, 20, 16), skin, 'head', at(c.x, c.y, c.z, 0.88, 1.05, 0.95));
+    const fz = c.z + R * 0.86;
+    // ears, nose, eyes, brows, mouth
+    for (const s of [-1, 1]) {
+      add(new THREE.SphereGeometry(R * 0.2, 8, 6), skin, 'head', at(c.x + s * R * 0.88, c.y, c.z, 0.5, 1, 0.8));
+      add(new THREE.SphereGeometry(R * 0.15, 12, 8), 0xffffff, 'head', at(c.x + s * R * 0.33, c.y + R * 0.12, fz - R * 0.04, 1, 0.8, 0.5));
+      add(new THREE.SphereGeometry(R * 0.075, 8, 6), 0x2a1d14, 'head', at(c.x + s * R * 0.33, c.y + R * 0.12, fz + R * 0.03, 1, 1, 0.5));
+      add(new THREE.BoxGeometry(R * 0.36, R * 0.07, R * 0.08), hairC, 'head', at(c.x + s * R * 0.34, c.y + R * 0.33, fz - R * 0.01, 1, 1, 1, 0, 0, -s * 0.12));
+    }
+    add(new THREE.SphereGeometry(R * (look.bigNose ? 0.22 : 0.16), 8, 6), look.nose ?? new THREE.Color(skin).multiplyScalar(0.92).getHex(), 'head', at(c.x, c.y - R * 0.08, fz + R * 0.06, 0.8, 1.1, 1));
+    if (look.cheeks != null) for (const s of [-1, 1]) add(new THREE.SphereGeometry(R * 0.17, 8, 6), look.cheeks, 'head', at(c.x + s * R * 0.48, c.y - R * 0.2, fz - R * 0.2, 1, 0.7, 0.4));      // rosy cheeks (a kid; an old boy's drinker's flush)
+    if (look.bushy) for (const s of [-1, 1]) add(new THREE.BoxGeometry(R * 0.42, R * 0.13, R * 0.12), hairC, 'head', at(c.x + s * R * 0.34, c.y + R * 0.35, fz, 1, 1, 1, 0, 0, -s * 0.2));      // big bushy eyebrows
+    if (look.earrings != null) for (const s of [-1, 1]) add(new THREE.SphereGeometry(R * 0.07, 6, 4), look.earrings, 'head', at(c.x + s * R * 0.9, c.y - R * 0.25, c.z, 1, 1.4, 1));
+    if (look.wrinkles) for (let i = 0; i < 2; i++) add(new THREE.BoxGeometry(R * 0.6, R * 0.025, R * 0.02), new THREE.Color(skin).multiplyScalar(0.8).getHex(), 'head', at(c.x, c.y + R * (0.5 + i * 0.12), fz - R * (0.12 + i * 0.05), 1, 1, 1, -0.3));
+    const bearded = look.beard && (look.beard.style === 'full' || look.beard.style === 'short');
+    add(new THREE.BoxGeometry(R * 0.4, R * 0.07, R * 0.06), bearded ? 0xb5655a : look.lips ?? 0x8a4a40, 'head', at(c.x, c.y - R * 0.42, fz + (bearded ? R * 0.16 : -R * 0.06)));
+    if (look.hair) hair(add, look.hair, c, R, k);
+    if (look.beard) beard(add, look.beard, c, R);
+    if (look.glasses) for (const s of [-1, 1]) add(new THREE.TorusGeometry(R * 0.2, R * 0.03, 6, 16), 0x111111, 'head', at(c.x + s * R * 0.33, c.y + R * 0.12, fz + R * 0.05));
+    if (look.glasses) add(new THREE.BoxGeometry(R * 0.26, R * 0.04, R * 0.04), 0x111111, 'head', at(c.x, c.y + R * 0.14, fz + R * 0.08));
+    if (look.cap) {   // backwards cap
+      add(new THREE.SphereGeometry(R * 1.04, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), look.cap, 'head', at(c.x, c.y + R * 0.06, c.z));
+      add(new THREE.BoxGeometry(R * 0.9, R * 0.06, R * 0.6), look.cap, 'head', at(c.x, c.y + R * 0.33, c.z - R * 1.05, 1, 1, 1, -0.25));
+    }
+    if (look.flatcap) {     // an old boy's flat cap: a flattened crown, the peak out over the forehead
+      add(new THREE.SphereGeometry(R * 1.08, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), look.flatcap, 'head', at(c.x, c.y + R * 0.2, c.z - R * 0.05, 1, 0.55, 1.05, -0.12));
+      add(new THREE.CylinderGeometry(R * 0.85, R * 0.9, R * 0.08, 16, 1, false, -Math.PI / 2, Math.PI), look.flatcap, 'head', at(c.x, c.y + R * 0.32, c.z + R * 0.75, 1, 1, 0.6, 0.12));
+    }
+    if (look.beanie != null) { add(new THREE.SphereGeometry(R * 1.1, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), look.beanie, 'head', at(c.x, c.y + R * 0.12, c.z - R * 0.03, 1, 1.05, 1, -0.2)); add(new THREE.CylinderGeometry(R * 1.08, R * 1.1, R * 0.22, 16, 1, true), new THREE.Color(look.beanie).multiplyScalar(0.8).getHex(), 'head', at(c.x, c.y + R * 0.22, c.z - R * 0.03, 1, 1, 1, -0.2)); }
+    if (look.bucket != null) { add(new THREE.CylinderGeometry(R * 0.95, R * 1.08, R * 0.55, 16), look.bucket, 'head', at(c.x, c.y + R * 0.65, c.z - R * 0.04, 1, 1, 1, -0.12)); add(new THREE.CylinderGeometry(R * 1.55, R * 1.55, R * 0.05, 18), look.bucket, 'head', at(c.x, c.y + R * 0.38, c.z, 1, 1, 1, -0.15)); }
+    if (look.tiara) for (let i = -2; i <= 2; i++) add(new THREE.OctahedronGeometry(R * (i === 0 ? 0.16 : 0.1), 0), 0xf2f2ff, 'head', at(c.x + i * R * 0.22, c.y + R * (1.02 - Math.abs(i) * 0.05), c.z + R * 0.3, 1, 1.3, 1));
+    if (look.shades) for (const s of [-1, 1]) add(new THREE.CylinderGeometry(R * 0.2, R * 0.2, R * 0.04, 12), 0x111111, 'head', at(c.x + s * R * 0.3, c.y + R * 0.78, c.z + R * 0.45, 1, 1, 1, 1.1));
+    if (look.flower) for (let i = 0; i < 5; i++) { const a = i * 1.256; add(new THREE.SphereGeometry(R * 0.09, 6, 4), 0xff5fa2, 'head', at(c.x + R * 0.8 + Math.cos(a) * R * 0.1, c.y + R * 0.55 + Math.sin(a) * R * 0.1, c.z + R * 0.3)); }
+  }
+  const geo = mergeGeometries(parts, false);
+  parts.forEach(p => p.dispose());
+  return geo;
+}
+
+function hair(add, h, c, R, k) {
+  const col = h.color;
+  // a hair cap tilted back so its front edge sits above the eyebrows
+  const cap = (scale = 1.06, theta = 0.46) => add(new THREE.SphereGeometry(R * scale, 18, 10, 0, Math.PI * 2, 0, Math.PI * theta), col, 'head', at(c.x, c.y + R * 0.04, c.z - R * 0.04, 1, 1, 1, -0.5));
+  switch (h.style) {
+    case 'short': cap(1.05, 0.44); break;
+    case 'buzz': cap(1.02, 0.42); break;
+    case 'horseshoe':        // going bald on top: a ring round the back and sides
+      add(new THREE.SphereGeometry(R * 1.05, 18, 8, Math.PI * 0.75, Math.PI * 1.5, Math.PI * 0.3, Math.PI * 0.32), col, 'head', at(c.x, c.y + R * 0.04, c.z - R * 0.02));
+      break;
+    case 'combover': cap(1.04, 0.3); add(new THREE.BoxGeometry(R * 1.5, R * 0.08, R * 1.2), col, 'head', at(c.x, c.y + R * 0.98, c.z - R * 0.05, 1, 1, 1, 0, 0, 0.12)); break;
+    case 'spiky': cap(1.04, 0.42); for (let i = 0; i < 12; i++) { const a = i * 2.4, r = R * (0.2 + (i % 3) * 0.22); add(new THREE.ConeGeometry(R * 0.13, R * 0.42, 5), col, 'head', at(c.x + Math.cos(a) * r, c.y + R * 0.98 - (i % 3) * R * 0.08, c.z + Math.sin(a) * r * 0.8 + R * 0.05, 1, 1, 1, Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4)); } break;
+    case 'quiff': cap(1.05, 0.42); add(new THREE.SphereGeometry(R * 0.45, 12, 8), col, 'head', at(c.x, c.y + R * 0.95, c.z + R * 0.45, 1.3, 0.8, 1, 0.5)); break;
+    case 'bob': cap(1.08, 0.5); for (const s2 of [-1, 1]) add(new THREE.BoxGeometry(R * 0.4, R * 1.05, R * 1.1), col, 'head', at(c.x + s2 * R * 0.92, c.y - R * 0.12, c.z - R * 0.15)); add(new THREE.BoxGeometry(R * 1.85, R * 1.05, R * 0.4), col, 'head', at(c.x, c.y - R * 0.12, c.z - R * 0.85)); break;
+    case 'bun': cap(1.07, 0.5); add(new THREE.SphereGeometry(R * 0.42, 12, 8), col, 'head', at(c.x, c.y + R * 0.8, c.z - R * 0.75)); break;
+    case 'ponytail': cap(1.07, 0.5); add(new THREE.SphereGeometry(R * 0.2, 8, 6), col, 'head', at(c.x, c.y + R * 0.35, c.z - R * 1.0)); add(new THREE.CapsuleGeometry(R * 0.17, R * 1.1, 4, 8), col, 'head', at(c.x, c.y - R * 0.35, c.z - R * 1.12, 1, 1, 1, -0.25)); break;
+    case 'bald': break;
+    case 'curtains':
+      cap(1.06, 0.45);
+      for (const s of [-1, 1]) add(new THREE.SphereGeometry(R * 0.55, 10, 8), col, 'head', at(c.x + s * R * 0.4, c.y + R * 0.55, c.z + R * 0.55, 1, 0.45, 0.75, 0.3, 0, -s * 0.6));
+      break;
+    case 'long':
+      cap(1.07, 0.55);
+      add(new THREE.BoxGeometry(R * 1.9, R * 3.2, R * 0.5), col, 'head', at(c.x, c.y - R * 1.0, c.z - R * 0.75));
+      for (const s of [-1, 1]) add(new THREE.BoxGeometry(R * 0.35, R * 1.9, R * 0.55), col, 'head', at(c.x + s * R * 0.95, c.y - R * 0.45, c.z + R * 0.05));
+      break;
+    case 'bigcurls':
+      for (let i = 0; i < 26; i++) {
+        const a = (i / 26) * Math.PI * 2, ring = i % 3;
+        const rr = R * (1.05 + ring * 0.25), y = c.y + R * (0.55 - ring * 0.55);
+        if (Math.cos(a) < (ring === 0 ? -0.75 : -0.25)) continue;   // keep the face clear (front is -cos)
+        add(new THREE.IcosahedronGeometry(R * (0.42 + (i % 4) * 0.05), 1), col, 'head', at(c.x + Math.sin(a) * rr, y, c.z - Math.cos(a) * rr * 0.9 + (ring === 0 ? 0 : -R * 0.15)));
+      }
+      cap(1.12, 0.5);
+      break;
+    case 'shortcurls':
+      cap(1.03, 0.42);
+      for (let i = 0; i < 16; i++) { const a = i * 2.4, r = R * (0.3 + (i % 3) * 0.25); add(new THREE.IcosahedronGeometry(R * 0.2, 0), col, 'head', at(c.x + Math.cos(a) * r, c.y + R * (0.85 - (i % 3) * 0.12), c.z + Math.sin(a) * r * 0.9)); }
+      break;
+    case 'mullet':
+      cap(1.06, 0.45);
+      for (let i = 0; i < 10; i++) { const a = i * 2.4, r = R * (0.3 + (i % 3) * 0.3); add(new THREE.IcosahedronGeometry(R * 0.24, 0), col, 'head', at(c.x + Math.cos(a) * r, c.y + R * 0.8, c.z + Math.sin(a) * r * 0.8)); }
+      for (let i = 0; i < 6; i++) add(new THREE.IcosahedronGeometry(R * 0.3, 0), col, 'head', at(c.x + (i % 3 - 1) * R * 0.4, c.y - R * (0.2 + Math.floor(i / 3) * 0.45), c.z - R * 0.85));
+      break;
+    case 'tucked':
+      cap(1.07, 0.52);
+      for (const s of [-1, 1]) add(new THREE.BoxGeometry(R * 0.3, R * 1.3, R * 0.8), col, 'head', at(c.x + s * R * 0.9, c.y - R * 0.15, c.z - R * 0.35));
+      add(new THREE.BoxGeometry(R * 1.6, R * 1.3, R * 0.4), col, 'head', at(c.x, c.y - R * 0.3, c.z - R * 0.8));
+      break;
+  }
+}
+
+function beard(add, b, c, R) {
+  const col = b.color;
+  switch (b.style) {
+    case 'full': add(new THREE.SphereGeometry(R * 1.0, 16, 10, 0, Math.PI, Math.PI * 0.5, Math.PI * 0.42), col, 'head', at(c.x, c.y - R * 0.05, c.z + R * 0.06, 0.92, 1.15, 1.02)); break;
+    case 'short': add(new THREE.SphereGeometry(R * 0.97, 16, 10, 0, Math.PI, Math.PI * 0.55, Math.PI * 0.36), col, 'head', at(c.x, c.y, c.z + R * 0.04, 0.9, 1.05, 1)); break;
+    case 'stubble': add(new THREE.SphereGeometry(R * 0.955, 16, 10, 0, Math.PI, Math.PI * 0.56, Math.PI * 0.34), new THREE.Color(col).lerp(new THREE.Color(0xe0b090), 0.5).getHex(), 'head', at(c.x, c.y, c.z + R * 0.03, 0.9, 1.05, 1)); break;
+    case 'goatee':
+      add(new THREE.SphereGeometry(R * 0.25, 8, 6), col, 'head', at(c.x, c.y - R * 0.7, c.z + R * 0.72, 1, 1.1, 0.6));
+      add(new THREE.BoxGeometry(R * 0.45, R * 0.07, R * 0.08), col, 'head', at(c.x, c.y - R * 0.3, c.z + R * 0.86));
+      break;
+    case 'tash': add(new THREE.BoxGeometry(R * 0.55, R * 0.12, R * 0.12), col, 'head', at(c.x, c.y - R * 0.3, c.z + R * 0.86, 1, 1, 1, 0, 0, 0)); for (const s of [-1, 1]) add(new THREE.BoxGeometry(R * 0.12, R * 0.25, R * 0.1), col, 'head', at(c.x + s * R * 0.3, c.y - R * 0.43, c.z + R * 0.8)); break;     // an old boy's walrus moustache
+    case 'patchy':
+      for (let i = 0; i < 7; i++) add(new THREE.SphereGeometry(R * 0.08, 6, 4), col, 'head', at(c.x + (i - 3) * R * 0.18, c.y - R * (0.55 + (i % 2) * 0.15), c.z + R * 0.78));
+      break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Props held in a hand (kept upright, like Aidan's never-spilt pint)
+// ---------------------------------------------------------------------------
+export function makeProp(type, k) {
+  let mesh;
+  if (type === 'pint') { mesh = new Item('pint').obj; mesh.scale.setScalar(1); }
+  else if (type === 'phone') {
+    mesh = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.15, 0.01), new THREE.MeshLambertMaterial({ color: 0x111111 }));
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.065, 0.135), new THREE.MeshBasicMaterial({ color: 0x00e5ff }));
+    screen.position.z = -0.006; screen.rotation.y = Math.PI;
+    const live = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff1744 }));
+    live.position.set(0.025, 0.065, 0.007);
+    mesh.add(body, screen, live);
+  } else if (type === 'rod') {
+    // Ian's fishing rod: handle at the origin (in the hand), rod pointing along +Z
+    mesh = new THREE.Group();
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.011, 1.6, 6), new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+    rod.rotation.x = Math.PI / 2; rod.position.z = 0.7;
+    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.28, 8), new THREE.MeshLambertMaterial({ color: 0xb08850 }));
+    cork.rotation.x = Math.PI / 2; cork.position.z = 0.0;
+    const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 10), new THREE.MeshLambertMaterial({ color: 0x9aa0a8 }));
+    reel.rotation.z = Math.PI / 2; reel.position.set(0, -0.04, 0.12);
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.0012, 0.0012, 1.2, 3), new THREE.MeshBasicMaterial({ color: 0xdddddd }));
+    line.position.set(0, -0.6, 1.5);
+    const float = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 4), new THREE.MeshBasicMaterial({ color: 0xff3d00 }));
+    float.position.set(0, -1.2, 1.5);
+    mesh.add(rod, cork, reel, line, float);
+  } else if (type === 'jug') {
+    // a big water jug with a handle (the hand holds the handle, at the group's origin)
+    mesh = new THREE.Group();
+    const jug = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.28, 14), new THREE.MeshPhongMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.6, shininess: 80 }));
+    jug.position.set(-0.115, -0.04, 0);
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.012, 6, 14, Math.PI), new THREE.MeshLambertMaterial({ color: 0x1e88e5 }));
+    handle.rotation.z = -Math.PI / 2; handle.position.set(-0.035, -0.04, 0);
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 12), new THREE.MeshLambertMaterial({ color: 0x1e88e5 }));
+    lid.position.set(-0.115, 0.12, 0);
+    mesh.add(jug, handle, lid);
+  }
+  return mesh;
+}
+
+// how far the scanned fingers close round a glass: only a little. The scanned skin can't take more (its fingers are joined
+// up): at 0.42 the skin between them stretched to 2.5-3.5 times its area (long spikes); 0.06 keeps every triangle under
+// 1.5 times (tests/pint.test.mjs measures it)
+export const GLASS_CURL = 0.06;
+// the things someone can do with their hands while they're sat down
+const SAT_ACTS = new Set(['phone', 'drink', 'chat', 'watch', 'waiter']);
+// ---------------------------------------------------------------------------
+// A squad member
+// ---------------------------------------------------------------------------
+export class SquadMember extends Character {
+  constructor(scene, room, physics, id, spawn, game) {
+    const def = SQUAD[id];
+    super(scene, room, physics, { id, name: def.name, color: def.color, body: def.model ? def.modelBody : def.body, banks: def.banks, spawn, voicePitch: def.voicePitch, koMul: def.koMul || 1, chatterEvery: 20 + Math.random() * 10, enterDelay: Math.random() * 1.5 });
+    this.def = def;
+    this.game = game;
+    this.title = def.title;
+    this.failLine = def.fail;
+    if (def.model) {          // their real 3D model, skinned onto the ragdoll at load time
+      this.rag.loadModel(def.model).catch((e) => {
+        console.warn(def.name + ' model failed, using stylised body', e);
+        this.rag.setMesh(buildBody(this.rag, def.look), new THREE.MeshLambertMaterial({ vertexColors: true }));
+      });
+    } else this.rag.setMesh(buildBody(this.rag, def.look), new THREE.MeshLambertMaterial({ vertexColors: true }));
+    if (def.look.prop) { this.prop = makeProp(def.look.prop, this.rag.height / 1.68); scene.add(this.prop); }
+    this.stayPut = !!def.stayPut;      // (Aidan W: the knee. He doesn't walk anywhere)
+    if (def.shoes) this.rag.wearShoes(def.shoes);
+    this.ready = true;
+  }
+
+  dispose() {
+    this.disposed = true;
+    Character.ALL.delete(this);
+    this.rag.dispose();
+    for (const o of [this.fx, this.bubble, this.prop, this.heldItem, ...this.stars]) if (o) this.scene.remove(o);
+    if (this.extra) this.extra.forEach(o => this.scene.remove(o));
+    if (this.clingJoint) { this.physics.world.removeConstraint(this.clingJoint); this.clingJoint = null; }
+  }
+
+  // ---- personality idles ----
+  // sitting in a seat (see seating.js): the seat's own height, sat back in it, legs down in front, forearms on the table
+  // if there's one (in the lap if not). The seat's worked out once per place they sit
+  seatHere() { const r = this.rag, rt = r.root, s = this._seat;
+    if (s && Math.abs(s.x - rt.x) < 0.04 && Math.abs(s.z - rt.z) < 0.04) return s.info;
+    const info = seatInfo(this.room, rt.x, rt.z, this.faceYaw ?? r.yaw); this._seat = { x: rt.x, z: rt.z, info }; return info; }
+  sitPose(t = this.t) {
+    const r = this.rag, info = this.seatHere(), legs = sitLegs(this, info, t);
+    r.bob = legs.bob; r.shiftZ = legs.back;
+    r.pose.chest.setFromAxisAngle(_lx, info.table ? 0.06 : -0.04);
+    this.seatArmsAt = seatArms(this, info, legs.bob + r.parts.uLegL.def.a.y + 0.02);
+  }
+  // after the pose for this frame: everything eased (see seating.js smoothPose): quickly while stood or sat about,
+  // slowly for the moments around sitting down or getting up
+  afterPose(dt) {
+    const sat = !!(this.seated && !this.down && (this.state === 'idle' || this.state === 'enter'));
+    if (sat !== this._wasSat) { this._wasSat = sat; this.sitT = this.t; }
+    if (this.state === 'walk' || this.state === 'ko' || this.state === 'grabbed') this.rag.shiftZ = 0;      // (a lunge or sitting back only while stood or sat there)
+    if (this.clipOut) fadeOut(this);
+    const easing = this.t - (this.sitT ?? -9) < 0.7;
+    if (this.state === 'idle' || this.state === 'enter' || (this.state === 'walk' && easing)) smoothPose(this, dt, easing ? 6 : (this.clip ? 16 : 12));
+    else this._smooth = null;
+  }
+  dancePose(t) {     // Chloe's strange little victory dance
+    const r = this.rag, s = Math.sin(t * 7), c2 = Math.cos(t * 7);
+    r.aim('uArmL', 0.6, 0.8 * s, 0.3); r.aim('lArmL', 0.3, 1, 0.2 * c2);
+    r.aim('uArmR', -0.6, -0.8 * s, 0.3); r.aim('lArmR', -0.3, 1, -0.2 * c2);
+    r.aim('uLegL', 0.1, -1, 0.3 * s); r.aim('uLegR', -0.1, -1, -0.3 * s);
+    r.pose.chest.setFromAxisAngle(_v.set(0, 0, 1), s * 0.18);
+    r.yaw += 0.04;
+    r.bob = Math.abs(s) * 0.04;
+  }
+
+  personalityPose(t) {
+    const r = this.rag; r.shiftZ = 0;
+    if (this.activity === 'lounge') {      // lying back on a sun lounger: legs out straight, body reclined on the backrest, hands behind the head
+      r.aim('uLegL', 0.025, 0.02, 1); r.aim('lLegL', 0.01, 0.0, 1); r.aim('uLegR', -0.025, 0.02, 1); r.aim('lLegR', -0.01, 0.0, 1);   // legs flat along the seat, on top of it
+      r.aim('uArmL', 0.7, 0.75, -0.2); r.aim('lArmL', -0.75, 0.2, -0.35); r.aim('uArmR', -0.7, 0.75, -0.2); r.aim('lArmR', 0.75, 0.2, -0.35);
+      _lq.setFromAxisAngle(_lx, -0.65 + Math.sin(t * 0.7) * 0.015);           // recline at the backrest's angle (a slow breath)
+      for (const n of ['pelvis', 'chest', 'head', 'uArmL', 'lArmL', 'uArmR', 'lArmR']) if (r.pose[n]) r.pose[n].premultiply(_lq);
+      r.bob = 0.49 - r.parts.uLegL.def.a.y;   // hips up on the slats (they're at 0.37)
+      return;
+    }
+    if (this.seated) this.sitPose(t);
+    if (this.clip && playClip(this, t)) return;      // (Run the Pub's punters: their library of moves, punteranims.js)
+    if (this.seated && (!this.activity || !SAT_ACTS.has(this.activity))) return;      // (sat at rest; or sat doing something with their hands)
+    if (this.dancing) { this.dancePose(t); return; }
+    // free roam: what they're up to
+    const ph = (this.id.charCodeAt(0) % 7) * 1.3;
+    switch (this.activity) {
+      case 'phone': r.aim('uArmR', -0.2, -1, 0.3); r.aim('lArmR', -0.1, 0.2, 1); r.aim('uArmL', 0.25, -1, 0.35); r.aim('lArmL', -0.2, 0.25, 1); r.pose.head && r.pose.head.setFromAxisAngle(_v.set(1, 0, 0), 0.35); return;
+      case 'drink': { const up = ((t + ph) % 7) > 5.6; r.aim('uArmR', -0.15, up ? -0.2 : -1, up ? 1 : 0.3); r.aim('lArmR', up ? 0.4 : -0.05, up ? 1 : 0.1, up ? -0.3 : 1); return; }
+      case 'watch': r.aim('uArmL', 0.2, -1, 0.35); r.aim('lArmL', -1, 0.15, 0.3); r.aim('uArmR', -0.2, -1, 0.35); r.aim('lArmR', 1, 0.2, 0.3); return;
+      case 'chat': { const s = Math.sin((t + ph) * 2.2); r.aim('uArmR', -0.3, -0.7, 0.6); r.aim('lArmR', -0.3 + s * 0.4, 0.4, 1); r.aim('uArmL', 0.25, -0.9, 0.3); r.aim('lArmL', 0.2, 0.1 + s * 0.2, 1); return; }
+      case 'darts': { const k = ((t + ph) % 4) / 4, wind = k < 0.25 ? k / 0.25 : k < 0.32 ? 1 - (k - 0.25) / 0.07 : 0;
+        r.aim('uArmR', -0.1, 0.05, 1); r.aim('lArmR', 0, 0.2 + wind * 0.9, 1 - wind * 0.9); return; }
+      case 'fight': {   // squaring up and swinging: guard up, bobbing, jabs and haymakers with the weight behind them
+        const k2 = (t * 2.6 + ph) % 2, jab = k2 < 0.25 ? Math.sin(k2 / 0.25 * Math.PI) : 0, hook = k2 > 1 && k2 < 1.3 ? Math.sin((k2 - 1) / 0.3 * Math.PI) : 0, bob = Math.sin(t * 6 + ph);
+        r.aim('uArmL', 0.25, -0.1 + jab * 0.2, 0.8 + jab * 0.4); r.aim('lArmL', -0.2, 0.6 - jab * 0.6, 0.6 + jab * 0.6);
+        r.aim('uArmR', -0.45 + hook * 0.5, 0.1 + hook * 0.1, 0.7); r.aim('lArmR', 0.2 + hook * 0.4, 0.6 - hook * 0.5, 0.5 + hook * 0.4);
+        r.aim('uLegL', 0.2, -1, 0.25); r.aim('lLegL', 0, -1, 0.05); r.aim('uLegR', -0.2, -1, -0.2); r.aim('lLegR', 0, -1, -0.3);
+        r.pose.chest.setFromAxisAngle(_v.set(0, 1, 0), -hook * 0.6 + jab * 0.2).premultiply(_lq.setFromAxisAngle(_lx, 0.18 + bob * 0.04)); r.bob = -0.05 - Math.abs(bob) * 0.02; return; }
+      case 'sing': {    // arms out wide, swaying, head back, belting it out
+        const sw = Math.sin(t * 2.2 + ph);
+        r.aim('uArmL', 1, 0.35 + sw * 0.2, 0.2); r.aim('lArmL', 1, 0.5, 0.1); r.aim('uArmR', -1, 0.35 - sw * 0.2, 0.2); r.aim('lArmR', -1, 0.5, 0.1);
+        r.pose.chest.setFromAxisAngle(_v.set(0, 0, 1), sw * 0.12).premultiply(_lq.setFromAxisAngle(_lx, -0.15)); r.yaw += Math.sin(t * 1.1) * 0.01; return; }
+      case 'waiter':    // a plate held up on the flat of the hand
+        r.aim('uArmR', -0.25, -0.5, 0.8); r.aim('lArmR', -0.05, 0.05, 1); r.aim('uArmL', 0.2, -1, 0.1); r.aim('lArmL', 0.05, -1, 0.3); return;
+      case 'cook': {    // stirring a pan, the other hand on the handle
+        const st = Math.sin(t * 5); r.aim('uArmR', -0.2, -0.6, 0.8); r.aim('lArmR', -0.3 + st * 0.3, -0.35, 1); r.aim('uArmL', 0.25, -0.6, 0.8); r.aim('lArmL', 0.2, -0.3, 1);
+        r.pose.chest.setFromAxisAngle(_lx, 0.25); return; }
+      case 'pour': {    // pulling a pint: one hand on the pump, the glass tilted under it, then a polish of a glass
+        const k2 = (t + ph) % 6; if (k2 < 3.5) { const pull = Math.min(1, k2 / 0.6); r.aim('uArmR', -0.15, -0.3, 1); r.aim('lArmR', -0.05, 0.4 - pull * 0.5, 1); r.aim('uArmL', 0.25, -0.75, 0.6); r.aim('lArmL', -0.4, -0.2, 1); }
+        else { const w = Math.sin(t * 9); r.aim('uArmL', 0.2, -0.7, 0.6); r.aim('lArmL', -0.6, 0.0, 0.8); r.aim('uArmR', -0.2, -0.7, 0.6); r.aim('lArmR', 0.6 + w * 0.2, 0.05, 0.8); }
+        r.pose.chest.setFromAxisAngle(_lx, 0.12); return; }
+      case 'tantrum': { const s2 = Math.sin(t * 14); r.aim('uArmL', 0.6, 0.6 * s2, 0.3); r.aim('uArmR', -0.6, -0.6 * s2, 0.3); r.aim('uLegL', 0.1, -1, 0.3 * s2); r.aim('uLegR', -0.1, -1, -0.3 * s2); r.bob = Math.abs(s2) * 0.04; return; }
+      case 'bat': r.aim('uArmR', -0.4, -0.5, 0.7); r.aim('lArmR', -0.2, 0.3 + Math.sin((t + ph) * 3) * 0.3, 1); r.aim('uLegL', 0.2, -1, 0.05); r.aim('uLegR', -0.2, -1, 0.05); return;
+    }
+    switch (this.id) {
+      case 'lewis':   // double-bicep flex every so often
+        if ((t % 16) > 14) { r.aim('uArmL', 1, 0.15, 0); r.aim('lArmL', 0.1, 1, 0.1); r.aim('uArmR', -1, 0.15, 0); r.aim('lArmR', -0.1, 1, 0.1); }   // a quick double-bicep flex now and then
+        break;
+      case 'oliver':  // always filming
+        r.aim('uArmR', -0.3, -0.4, 1); r.aim('lArmR', -0.1, 0.35, 1);
+        break;
+      case 'connor':
+      case 'alfie':
+      case 'ian':     // pint (or fishing rod) at the ready
+      case 'aidan':   // pint at the ready
+        r.aim('uArmR', -0.15, -1, 0.3); r.aim('lArmR', -0.05, 0.1, 1);
+        break;
+      case 'harry':   // swiping on the dating app
+        r.aim('uArmR', -0.2, -1, 0.3); r.aim('lArmR', -0.1, 0.2, 1);
+        r.aim('uArmL', 0.25, -1, 0.35 + Math.sin(t * 4) * 0.15); r.aim('lArmL', -0.2, 0.25, 1);
+        break;
+      case 'chloe':   // arms crossed: disappointed
+        r.aim('uArmL', 0.2, -1, 0.35); r.aim('lArmL', -1, 0.15, 0.3); r.aim('uArmR', -0.2, -1, 0.35); r.aim('lArmR', 1, 0.2, 0.3);
+        break;
+      case 'dylan':   // can't keep still
+        r.pose.chest.setFromAxisAngle(_v.set(0, 1, 0), Math.sin(t * 6) * 0.15);
+        break;
+      case 'noah':    // rugby stance
+        r.aim('uLegL', 0.2, -1, 0.05); r.aim('uLegR', -0.2, -1, 0.05); r.aim('uArmL', 0.3, -1, 0.2); r.aim('uArmR', -0.3, -1, 0.2);
+        break;
+    }
+  }
+
+  // move a held glass/bottle out of the hand to sit against the palm: the scanned hands are open with the palm
+  // toward the thigh (the body's midline in the bind pose), so push the glass that way by its radius,
+  // a little up (fingers wrap round its lower half) and a touch forward of the knuckles
+  holdBeside(arm, pos, r) {
+    const hc = this.rag.handC && this.rag.handC[arm], s = this.rag.height / 1.68;
+    const bx = hc ? hc.x : this.rag.parts[arm].def.b.x;
+    const q = this.rag.partQuat(arm, _q), ax = this.rag.handAxes && this.rag.handAxes[arm];
+    // (which way the palm really faces: the hand's own axes, measured from the model, else a guess from the bind pose)
+    const palm = ax ? _v2.copy(ax.palm).applyQuaternion(q) : _v2.set(-Math.sign(bx || 1), 0, 0.25).applyQuaternion(q);
+    if (palm.normalize().y > 0.6) { pos.y += 0.075 * s; return; }      // hand turned palm-up: the glass stands on the palm
+    palm.y = 0;
+    if (palm.lengthSq() < 1e-4) palm.set(Math.sin(this.rag.yaw), 0, Math.cos(this.rag.yaw));
+    palm.normalize();
+    // the glass's side against the palm (half the hand's thickness out from its middle, then the glass's radius), the hand
+    // round its lower half
+    pos.addScaledVector(palm, r + (ax ? 0.013 : 0.035) * s); pos.y += (ax ? 0.022 : -0.01) * s;      // (a built body's chunky hand and sleeve: a bit further out, the hand round its middle)
+    // ...and a touch forward, so from in front the glass is a little in front of the hand (the straight fingers lie along
+    // its side) rather than the hand pasted across the front of it
+    pos.x += Math.sin(this.rag.yaw) * 0.014 * s; pos.z += Math.cos(this.rag.yaw) * 0.014 * s;
+  }
+
+  afterUpdate(dt, ctx) {
+    // props that follow the hands during an attack
+    if (this.handProp) { this.rag.grip('lArmR', this.handProp.position); this.handProp.rotation.set(0, this.rag.yaw, 0); if (this.attack === 'diet') this.handProp.position.y += 0.06; if (this.attack === 'pepsi') this.holdBeside('lArmR', this.handProp.position, 0.045); }
+    if (this.guitar) {
+      this.rag.pos('chest', this.guitar.position); const yaw = this.rag.yaw;
+      this.guitar.position.add(_v.set(Math.sin(yaw) * 0.2 - Math.cos(yaw) * 0.12, -0.18, Math.cos(yaw) * 0.2 + Math.sin(yaw) * 0.12));
+      this.guitar.rotation.order = 'YXZ'; this.guitar.rotation.set(0, yaw, 0.45);   // face forward, neck to his left, tilted up
+    }
+    if (this.oasisKit) this.placeOasisKit();
+    if (this.state !== 'act' && this.attackProps && this.attackProps.length) this.endAttackProps();
+    this.placeProp(dt, ctx);
+    this.actAfter && this.actAfter(dt, ctx);
+  }
+  // walking with a pint: the gait swings the arms (the base layer); the arm with the glass is held steady over it, forearm
+  // forward, so the pint isn't flung about
+  walkPose(dt, speed = 0.9, blend = 1) {
+    super.walkPose(dt, speed, blend);
+    if (this.prop && this.prop.visible && !['phone', 'rod', 'jug'].includes(this.def.look.prop) && this.state !== 'act') {
+      const r = this.rag, sw = Math.sin((this.t || 0) * 5.5) * 0.04; r.aim('uArmR', -0.15, -1, 0.25 + sw); r.aim('lArmR', -0.05, 0.1, 1); }
+  }
+  // the prop they carry (Lewis's jug, a pint, a phone, Ian's rod): in their hand. Also on a joining player's game, where
+  // the host moves the body: left out there, it stayed where it was made, in the middle of the pub floor
+  placeProp(dt, ctx) {
+    if (this.prop) {
+      const arm = this.id === 'lewis' ? 'lArmL' : 'lArmR';
+      const hand = this.rag.grip(arm, _v);
+      this.prop.visible = this.state !== 'act' || (this.id !== 'aidan' && this.id !== 'connor') || !this.pintGiven;
+      this.prop.position.copy(hand);
+      if (this.def.look.prop === 'phone') {      // screen faces Ronnie, bottom half of the phone in the palm
+        if (ctx && ctx.head) { this.prop.lookAt(ctx.head); this.prop.rotateY(Math.PI); } else this.prop.rotation.set(0, this.rag.yaw, 0);
+        this.prop.position.add(_v2.set(0, 0.03, 0).applyQuaternion(this.prop.quaternion));
+      } else if (this.def.look.prop === 'rod') {  // rod held out in front, tip up
+        this.prop.rotation.set(-0.5, this.rag.yaw, 0, 'YXZ');
+        // reeling Ronnie in: a taut line from the rod tip to his middle
+        if (!this.reelLine) { this.reelLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xffffff })); this.reelLine.frustumCulled = false; this.scene.add(this.reelLine); this.extra = [...(this.extra || []), this.reelLine]; }
+        this.reeling = Math.max(0, (this.reeling || 0) - dt);
+        this.reelLine.visible = this.reeling > 0 && !this.down && !!(ctx && ctx.head);
+        if (this.reelLine.visible) {
+          this.prop.updateMatrixWorld(true);
+          const tip = _v2.set(0, 0, 1.45).applyMatrix4(this.prop.matrixWorld);
+          const a = this.reelLine.geometry.attributes.position;
+          a.setXYZ(0, tip.x, tip.y, tip.z); a.setXYZ(1, ctx.head.x, ctx.head.y - 0.45, ctx.head.z); a.needsUpdate = true;
+        }
+      } else if (this.def.look.prop === 'jug') { // held by the handle, the jug hanging on the outside
+        const pel = this.rag.parts.pelvis.body.position;
+        this.prop.rotation.set(0, Math.atan2(hand.x - pel.x, hand.z - pel.z) + Math.PI / 2, 0);
+      } else {                                   // pint: upright, held round its side like a glass (palm on the glass, not through it)
+        this.prop.quaternion.identity();
+        this.holdBeside(arm, this.prop.position, 0.037);
+        // the face of the glass (its harp) turned away from the palm, and the fingers closed round it
+        { const ax = this.rag.handAxes && this.rag.handAxes[arm]; if (ax) { const p = _v.copy(ax.palm).applyQuaternion(this.rag.partQuat(arm, _q)); if (Math.hypot(p.x, p.z) > 0.3) this.prop.rotation.set(0, Math.atan2(p.x, p.z), 0); } }
+      }
+      // fingers wrapped round a glass (the pint's): curled in, and straight again when it's put away
+      const hp = this.rag.handPose && this.rag.handPose[arm]; if (hp && !(this.emote && this.emote.active)) hp.curl = !['phone', 'rod', 'jug'].includes(this.def.look.prop) && this.prop.visible ? GLASS_CURL : 0;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Interventions — each one fails, by design.
+  // ---------------------------------------------------------------------------
+  intervene(key = null) {
+    if (this.down || this.state === 'act') return false;
+    this.state = 'act'; this.stateT = 0; this.phase = 0; this.blinked = false;
+    this.attack = key || { ian: 'bbq', dylan: 'oasis', ben: 'turkey' }[this.id] || null;
+    this.say(this.attack === 'rod' ? 'Hold still, Ronnie, I\'ve caught bigger than you up the lake! Well. No I haven\'t.' : this.attack === 'oasis' ? 'Right, Ronnie. Sit down. Wonderwall. Then the B-sides. ALL the B-sides.' : 'intervene', 4);
+    this.actStart && this.actStart();
+    // first walk up to Ronnie and do their signature move on him (Noah charges;
+    // Ian only needs to get within casting range, or barbecue-throwing range)
+    this.approach = { knee: 0, tackle: 0, rod: 2.4, bbq: 2.2, flash: 1.8, dating: 1.0, oasis: 1.4, turkey: 1.0 }[this.attack] ?? (this.id === 'noah' ? 0 : 0.9);
+    this.announceNow = this.approach === 0 && this.attack !== 'tackle';      // (no walk-up, e.g. Aidan W's knee from where he sits: the pop-up and the attack straight away. It used to wait for a walk-up that never came, so it never happened)
+    if (this.attack === 'bbq') { this.passes = 4; }
+    else if (['rod', 'oasis', 'turkey'].includes(this.attack)) { /* the attack is the whole move */ }
+    else ({
+      chloe: () => { this.salads = 3; },
+      lewis: () => { this.goToStation(); },
+      harry: () => { this.passes = 3; },
+      aidan: () => { this.goToStation(); this.pintGiven = false; },
+      noah: () => { this.game.announce && this.game.announce(this, 'tackle'); this.stateT = -ANNOUNCE_T; },
+      oliver: () => { this.filming = 20; this.followers = 1000; },
+      dylan: () => {},
+      ben: () => {},
+      connor: () => { this.goToStation(); this.pintGiven = false; },
+      ethan: () => { this.passes = 3; },
+      ian: () => {},
+      alfie: () => { this.passes = 4; },
+      aidanw: () => {},
+    })[this.id]?.();
+    return true;
+  }
+
+  get busyAttacking() { return this.state === 'act' && (this.approach > 0 || this.announceT > 0 || this.signT > 0 || (this.id === 'noah' && this.stateT < 5) || this.attack === 'bbq'); }
+
+  // ---------------- attack props & poses ----------------
+  startAttackProps() {
+    this.endAttackProps();
+    const fx = this.game && this.game.g && this.game.g.fx; this.attackFx = fx;
+    const add = (o) => { this.scene.add(o); (this.attackProps = this.attackProps || []).push(o); return o; };
+    const P = this.pos;
+    if (this.attack === 'bbq') {                       // a kettle barbecue between Ian and Ronnie, food sizzling on it
+      const yaw = this.rag.yaw, bx = P.x + Math.sin(yaw) * 0.75, bz = P.z + Math.cos(yaw) * 0.75;
+      const bbq = add(new THREE.Group()); bbq.position.set(bx, 0, bz);
+      const black = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+      const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), black); bowl.position.y = 0.72; bbq.add(bowl);
+      for (let i = 0; i < 3; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.72, 5), black); const a = i / 3 * Math.PI * 2; l.position.set(Math.cos(a) * 0.2, 0.36, Math.sin(a) * 0.2); l.rotation.set(Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25); bbq.add(l); }
+      const coals = new THREE.Mesh(new THREE.CircleGeometry(0.27, 16), new THREE.MeshBasicMaterial({ color: 0xff5a10 })); coals.rotation.x = -Math.PI / 2; coals.position.y = 0.66; bbq.add(coals);
+      const grill = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.008, 4, 20), new THREE.MeshLambertMaterial({ color: 0x9aa0a8 })); grill.rotation.x = Math.PI / 2; grill.position.y = 0.72; bbq.add(grill);
+      for (let i = -3; i <= 3; i++) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.006, 0.006), grill.material); bar.position.set(0, 0.72, i * 0.07); bbq.add(bar); }
+      this.bbqFood = ['pepper', 'tomato', 'broccoli', 'cauliflower'].map((t, i) => { const o = new Item(t).obj; o.scale.setScalar(1); o.position.set((i % 2 ? 0.1 : -0.1), 0.76, (i < 2 ? -0.09 : 0.09)); bbq.add(o); return o; });
+      this.bbq = bbq;
+      sfx('sizzle', { x: bx, y: 0.8, z: bz }, 1);
+    } else if (this.attack === 'pepsi') {              // a big bottle of Pepsi Max in Ethan's hand
+      const b = add(new THREE.Group());
+      b.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.24, 12), new THREE.MeshLambertMaterial({ color: 0x1a0d06 })));
+      const lab = new THREE.Mesh(new THREE.CylinderGeometry(0.047, 0.047, 0.08, 12), new THREE.MeshLambertMaterial({ color: 0x0b3fa8 })); b.add(lab);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.05, 8), new THREE.MeshLambertMaterial({ color: 0x111111 })); cap.position.y = 0.14; b.add(cap);
+      this.handProp = b;
+    } else if (this.attack === 'oasis') {              // Dylan does Liam: a mic on a stand in front of him, a tambourine, the round shades
+      const k = this.rag.height / 1.68, yaw = this.rag.yaw, blk = new THREE.MeshLambertMaterial({ color: 0x161616 }), chrome = new THREE.MeshLambertMaterial({ color: 0xb8bcc2 });
+      const mouthY = this.headPos(_v).y - 0.05 * k;
+      const stand = add(new THREE.Group());
+      { const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.025, 20), blk); base.position.y = 0.012; stand.add(base);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, mouthY - 0.12, 8), chrome); pole.position.y = (mouthY - 0.12) / 2; stand.add(pole);
+        const clip = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.08, 8), blk); clip.position.set(0, mouthY - 0.1, 0.02); clip.rotation.x = -0.9; stand.add(clip); }
+      stand.position.set(P.x + Math.sin(yaw) * 0.36 * k, 0, P.z + Math.cos(yaw) * 0.36 * k); stand.rotation.y = yaw;
+      const mic = add(new THREE.Group());
+      { const h = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.013, 0.13, 12), blk); h.rotation.x = Math.PI / 2; h.position.z = -0.065; mic.add(h);
+        const gr = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 8), chrome); mic.add(gr);
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.012, 12), chrome); band.rotation.x = Math.PI / 2; band.position.z = -0.025; mic.add(band); }
+      const tamb = add(new THREE.Group());
+      { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 22), new THREE.MeshLambertMaterial({ color: 0x8a1a1a })); tamb.add(ring);
+        for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.3; for (const dz of [-0.012, 0.012]) { const j = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.005, 10), chrome); j.rotation.x = Math.PI / 2; j.position.set(Math.cos(a) * 0.1, Math.sin(a) * 0.1, dz); tamb.add(j); } } }
+      tamb.visible = false;
+      const shades = add(new THREE.Group());
+      { const lens = new THREE.MeshLambertMaterial({ color: 0x1a1030 });
+        for (const sx of [-1, 1]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.006, 14), lens); l.rotation.x = Math.PI / 2; l.position.set(sx * 0.034, 0, 0); shades.add(l); }
+        const br = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.004, 0.004), blk); shades.add(br); }
+      shades.scale.setScalar(k);
+      this.oasisKit = { stand, mic, tamb, shades, k, micAt: new THREE.Vector3(stand.position.x + Math.sin(yaw) * -0.05, mouthY + 0.02, stand.position.z + Math.cos(yaw) * -0.05), said: {} };
+    } else if (this.attack === 'diet') {               // Chloe holds up a salad
+      const bowl = add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 7, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide })));
+      for (let i = 0; i < 10; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.03, 0), new THREE.MeshLambertMaterial({ color: [0x4caf3c, 0x7cb342, 0xe53935][i % 3] })); m.position.set(Math.cos(i * 2.4) * 0.05, -0.01, Math.sin(i * 2.4) * 0.05); bowl.add(m); }
+      this.handProp = bowl;
+    } else if (this.attack === 'yeet' || this.attack === 'turkey' || this.attack === 'jig') {
+      // nothing to hold: it's all in the moves
+    }
+  }
+  endAttackProps() {
+    if (this.attackProps) this.attackProps.forEach(o => this.scene.remove(o));
+    this.attackProps = []; this.handProp = null; this.guitar = null; this.oasisKit = null; this.bbq = null; this.bbqFood = null; this.strumming = 0; this.jig = 0;
+  }
+  // the body language of each attack (t = seconds into it)
+  signPose(t, ctx) {
+    const r = this.rag, s = Math.sin, fx = this.attackFx;
+    switch (this.attack) {
+      case 'beer': r.aim('uArmR', -0.15, 0.15, 1); r.aim('lArmR', -0.05, 0.2, 1); r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), 0.15); break;      // here, have it
+      case 'dating': r.aim('uArmR', -0.15, 0.35, 1); r.aim('lArmR', -0.05, 0.45, 1); r.aim('uArmL', 0.3, -0.6, 0.5); r.aim('lArmL', 0.2, 0.2 + s(t * 6) * 0.3, 1); break;   // phone in your face, waving the other hand
+      case 'pepsi': r.aim('uArmR', -0.3, 0.1 + (t < 0.6 ? s(t * 40) * 0.5 : 0.3), 1); r.aim('lArmR', -0.1, t < 0.6 ? 0.8 : 0.3, 1); break;                // shake shake... spray
+      case 'jig':                                                                                          // proper Irish dancing: arms dead straight, legs flying
+        r.aim('uArmL', 0.08, -1, 0); r.aim('lArmL', 0.05, -1, 0); r.aim('uArmR', -0.08, -1, 0); r.aim('lArmR', -0.05, -1, 0);
+        r.aim('uLegL', 0.02, -1, Math.max(0, s(t * 11)) * 1.1); r.aim('lLegL', 0, -1, Math.max(0, s(t * 11)) * 0.4 - Math.max(0, -s(t * 11)) * 0.9);
+        r.aim('uLegR', -0.02, -1, Math.max(0, -s(t * 11)) * 1.1); r.aim('lLegR', 0, -1, Math.max(0, -s(t * 11)) * 0.4 - Math.max(0, s(t * 11)) * 0.9);
+        r.bob = Math.abs(s(t * 11)) * 0.06;
+        if (fx && Math.random() < 0.08) fx.notes(this.headPos(_v).add({ x: 0, y: 0.25, z: 0 }), 1);
+        break;
+      case 'siu': {                                                                                        // run, jump, spin in the air, land: SIUUU
+        const r2 = this.rag;
+        if (t < 0.3) { r2.aim('uArmL', 0.3, -0.6, -0.5); r2.aim('uArmR', -0.3, -0.6, -0.5); r2.bob = -0.08; r2.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), 0.3); }
+        else if (t < 0.9) { const u = (t - 0.3) / 0.6; r2.bob = Math.sin(u * Math.PI) * 0.55; r2.aim('uArmL', 0.6, 0.6, 0); r2.aim('uArmR', -0.6, 0.6, 0); r2.aim('uLegL', 0.1, -1, 0.5); r2.aim('uLegR', -0.1, -1, 0.5); }
+        else { r2.aim('uArmL', 0.9, -0.5, 0.15); r2.aim('uArmR', -0.9, -0.5, 0.15); r2.aim('lArmL', 0.7, -0.7, 0); r2.aim('lArmR', -0.7, -0.7, 0); r2.aim('uLegL', 0.35, -1, 0); r2.aim('uLegR', -0.35, -1, 0); r2.bob = -0.05; r2.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), -0.25); }
+        if (t > 0.9 && this.speakT <= 0) this.say('SIUUUUUUUU!', 4);
+        break;
+      }
+      case 'yeet':                                                                                         // squat, grab, LIFT, throw
+        if (t < 0.7) { r.aim('uArmL', 0.3, -0.2, 1); r.aim('uArmR', -0.3, -0.2, 1); r.aim('lArmL', 0.1, -0.1, 1); r.aim('lArmR', -0.1, -0.1, 1); r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), 0.35); r.bob = -0.08; }
+        else { r.aim('uArmL', 0.25, 1, 0.3); r.aim('uArmR', -0.25, 1, 0.3); r.aim('lArmL', 0.1, 1, 0.5); r.aim('lArmR', -0.1, 1, 0.5); r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), -0.15); }
+        break;
+      case 'rod': r.aim('uArmR', -0.2, t < 0.4 ? 1 : 0.35, t < 0.4 ? -0.3 : 0.9); r.aim('lArmR', -0.1, t < 0.4 ? 1 : 0.6, 0.7); if (t > 0.4) r.pose.chest.setFromAxisAngle(_v.set(0, 1, 0), s(t * 5) * 0.12); break;   // cast... and reel
+      case 'bbq':                                                                                          // flipping burgers
+        r.aim('uArmR', -0.2, -0.3, 1); r.aim('lArmR', -0.05, -0.2 + s(t * 7) * 0.35, 1); r.aim('uArmL', 0.25, -0.5, 0.6); r.aim('lArmL', 0.1, 0.1, 1);
+        if (fx && this.bbq && Math.random() < 0.25) fx.particle(fx.dotTex, this.bbq.position.clone().add({ x: (Math.random() - 0.5) * 0.3, y: 0.8, z: (Math.random() - 0.5) * 0.3 }), new THREE.Vector3((Math.random() - 0.5) * 0.1, 0.5, (Math.random() - 0.5) * 0.1), 1.6, 0.14, 0x9a9a9a, 0.1, true);
+        break;
+      case 'knee': r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), 0.45); r.aim('uArmL', 0.1, -1, 0.5); r.aim('lArmL', 0.1, -0.6, 0.7); r.aim('uArmR', -0.1, -1, 0.5); r.aim('lArmR', -0.1, -0.6, 0.7); r.aim('uLegR', -0.05, -0.85, 0.5); r.bob = -0.06 + Math.sin(t * 9) * 0.01; break;   // bent over, clutching the knee
+      case 'diet': r.aim('uArmL', 0.15, 0.25, 1); r.aim('uArmR', -0.15, 0.25, 1); r.aim('lArmL', -0.1, 0.3, 1); r.aim('lArmR', 0.1, 0.3, 1); break;      // holding the salad out
+      case 'flash': r.aim('uArmR', -0.1, 0.35, 1); r.aim('lArmR', 0, 0.4, 1); r.aim('uArmL', 0.1, 0.3, 1); r.aim('lArmL', 0, 0.4, 1); break;            // phone up, both hands
+      case 'oasis': this.oasisPose(t, ctx); break;      // Liam at the mic, then the whole show (punteranims.js x_oasis)
+      case 'nutmeg': if (t < 0.5) { r.aim('uLegR', -0.05, -0.6, -0.7); } else { r.aim('uLegR', -0.05, -0.6, 0.9); r.aim('lLegR', 0, -0.7, 0.8); } r.aim('uArmL', 0.8, 0.1, 0); r.aim('uArmR', -0.8, 0.1, 0); break;
+      case 'turkey': r.aim('uArmR', -0.2, 0.6, 0.8); r.aim('lArmR', -0.1, 0.9, 0.3); r.aim('uArmL', 0.25, -0.8, 0.4); r.aim('lArmL', 0.2, -0.2, 1); break;   // pointing at his hairline
+      default: break;
+    }
+  }
+
+  // DYLAN'S OASIS, LIVE: no guitar. Liam at the mic stand (hands behind his back, leaning up into it, swaying), then he
+  // grabs the mic, out comes the tambourine, slapped on his hip as he steps in on Ronnie, arms out wide, right down on
+  // his haunches for the big note, pointing at him, hand on his heart, and the big finish with both arms up. The moves
+  // are keyframed (x_oasis in punteranims.js) over the whole 6.5s; the notes fly thicker on the big lines
+  oasisPose(t, ctx) {
+    const hd = poseAt(this, 'x_oasis', t); if (hd) this.headExtra = { yaw: hd.yaw, pitch: hd.pitch, roll: hd.roll };
+    const dt = Math.max(0, Math.min(0.1, t - (this._oT ?? t))); this._oT = t;
+    // stepping in on him (for the chorus, and the point): never closer than an arm's length
+    if ((t > 2.4 && t < 3.3) || (t > 4.8 && t < 5.3)) { const dx = ctx.head.x - this.pos.x, dz = ctx.head.z - this.pos.z, d = Math.hypot(dx, dz); if (d > 1.05) { this.rag.root.x += dx / d * 0.5 * dt; this.rag.root.z += dz / d * 0.5 * dt; } }
+    const kit = this.oasisKit, fx = this.attackFx, big = (t > 3.4 && t < 4.6) || t > 5.8;
+    if (fx && Math.random() < (big ? 0.4 : 0.14)) fx.notes(this.headPos(_v).add({ x: 0, y: 0.22, z: 0 }), big ? 2 : 1);
+    if (kit) { const say = (at, key, line) => { if (t >= at && !kit.said[key]) { kit.said[key] = true; this.say(line, 2.2); } };
+      say(0.4, 'a', OASIS_LINES[Math.floor(Math.random() * 3)]); say(2.4, 'b', '♪ Because maybeeeee... ♪'); say(3.75, 'c', '♪ YOU\'RE GONNA BE THE ONE THAT— ♪'); say(4.9, 'd', '♪ ...SAVES ME. ♪ (it\'s you, Ron. You need saving.)'); say(5.85, 'e', '♪ AND AFTER ALL... YOU\'RE MY WONDERWAAAALL! ♪'); }
+  }
+  // the mic (on its stand, then in his hand), the tambourine in the other hand, the shades on his face
+  placeOasisKit() {
+    const kit = this.oasisKit, t = this.signT > 0 ? this.signDur - this.signT : 0, r = this.rag;
+    if (t < 2.15) kit.mic.position.copy(kit.micAt); else { r.grip('lArmR', kit.mic.position); kit.mic.position.y += 0.02 * kit.k; }
+    const mouth = this.headPos(_v2).add(_v.set(Math.sin(r.yaw) * 0.08, -0.05, Math.cos(r.yaw) * 0.08)); kit.mic.lookAt(mouth);
+    kit.tamb.visible = t > 2.35 && t < 6.6; if (kit.tamb.visible) { r.grip('lArmL', kit.tamb.position); r.partQuat('lArmL', kit.tamb.quaternion); kit.tamb.rotateY(Math.PI / 2); }
+    { const hp = r.parts.head.body.position; r.partQuat('head', kit.shades.quaternion); kit.shades.position.set(hp.x, hp.y, hp.z).add(_v.set(0, 0.02 * kit.k, 0.112 * kit.k).applyQuaternion(kit.shades.quaternion)); }
+  }
+
+  cancelAction() {
+    this.endAttackProps();
+    if (this.clingJoint) this.letGo(false);
+    this.filming = 0;
+    if (this.followerSprite) this.followerSprite.visible = false;
+  }
+
+  goToStation() {
+    const st = this.room.spawns[0];
+    this.stationX = st.x + 0.55; this.stationZ = st.z - 0.1;
+  }
+
+  actUpdate(dt, ctx) {
+    const r = this.rag, g = this.game;
+    this.setIdlePose(this.t);
+    const done = () => { this.state = 'idle'; this.stateT = 0; this.nextMove = 3; this.onEvent && this.onEvent('acted', this); };
+    // Noah's tackle (a charge: he appears a few strides away, then runs at you) and Aidan W's knee (he's suddenly right
+    // there, telling you all about it): no long walk over for them either
+    if (!this.blinked && (this.attack === 'tackle' || this.attack === 'knee')) { this.blinked = true; this.blinkTo(ctx.head, ctx.fwd, this.attack === 'tackle' ? 5 : 1.2); }
+    if (this.announceNow) { this.announceNow = false; this.stateT = 0; this.arriveT = 0.35;
+      g.g && g.g.player && g.g.player.faceToward && g.g.player.faceToward(this.pos.x, this.pos.z, 0.45);
+      this.announceT = ANNOUNCE_T; g.announce && g.announce(this, this.attack); }
+    if (this.approach) {
+      // they appear right in front of whoever they're attacking (no walking over: quicker, and nothing to get stuck on)
+      if (!this.blinked) { this.blinked = true; this.blinkTo(ctx.head, ctx.fwd, this.approach); }
+      // (if there was nowhere clear to appear: run over along a proper path round the furniture, then square up)
+      const d = this.chaseTo(ctx.head.x, ctx.head.z, dt, 3.3, this.approach);
+      if (d > this.approach && this.stateT < 14) { if (Math.random() < dt * 0.25 && this.speakT <= 0) this.say(['RONNIE!', 'Oi! Ron!', 'Don\'t you move!', 'Stay there, Ronnie!', 'Right, you!'][Math.floor(Math.random() * 5)], 3); return; }
+      this.chase = null; this.approach = 0; this.stateT = 0; this.arriveT = 0.35;
+      g.g && g.g.player && g.g.player.faceToward && g.g.player.faceToward(this.pos.x, this.pos.z, 0.45);   // he turns round to face them
+      this.announceT = ANNOUNCE_T;                         // the pop-up first...
+      g.announce && g.announce(this, this.attack);
+      if (this.attack === 'bbq') this.startAttackProps();  // (Ian gets the barbecue going while you read it)
+    }
+    if (this.announceT > 0) {                              // ...squaring up to Ronnie while it's on screen
+      this.announceT -= dt;
+      // (the card is up for its 2 seconds and then slides away: they keep squaring up till it's completely gone, so
+      // the move itself is never hidden behind it)
+      { const fx = g.g && g.g.fx; if (this.announceT <= 0 && fx && fx.cardT >= 0 && (this.cardWait = (this.cardWait || 0) + dt) < 4) this.announceT = 0.001; else if (this.announceT <= 0) this.cardWait = 0; }
+      this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 7);
+      const at = ANNOUNCE_T - this.announceT;
+      if (this.arriveT > 0) {                              // skidding to a stop: leaning back, arms out for balance
+        this.arriveT -= dt; const k = this.arriveT / 0.35;
+        r.aim('uLegL', 0.05, -1, 0.45 * k); r.aim('lLegL', 0, -1, 0.5 * k); r.aim('uLegR', -0.05, -1, -0.2 * k); r.aim('lLegR', 0, -1, -0.4 * k);
+        r.aim('uArmL', 0.9, -0.2, 0.2); r.aim('uArmR', -0.9, -0.2, 0.2); r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), -0.25 * k); r.bob = -0.05 * k;
+      } else {
+        // squaring up: feet apart, a bounce on the toes, chest out, pointing at him, then beckoning "come on then"
+        const bounce = Math.abs(Math.sin(at * 7)), beck = at > ANNOUNCE_T * 0.55;
+        r.aim('uLegL', 0.16, -1, 0.12); r.aim('lLegL', 0.02, -1, -0.05 + bounce * 0.12); r.aim('uLegR', -0.16, -1, -0.08); r.aim('lLegR', -0.02, -1, -0.15 + bounce * 0.1);
+        r.bob = -0.02 - bounce * 0.025;
+        if (!beck) { r.aim('uArmR', -0.15, 0.25, 1); r.aim('lArmR', -0.05, 0.3, 1); r.aim('uArmL', 0.45, -0.7, 0.3); r.aim('lArmL', -0.4, -0.3, 0.6); }           // pointing at you, other hand on the hip
+        else { const b = Math.sin(at * 10); r.aim('uArmR', -0.3, 0.0, 1); r.aim('lArmR', -0.1, 0.55 + b * 0.35, 0.6 - b * 0.4); r.aim('uArmL', 0.3, 0.0, 1); r.aim('lArmL', 0.1, 0.55 - b * 0.35, 0.6 + b * 0.4); }   // beckoning with both hands
+        r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), -0.12 + Math.sin(at * 7) * 0.03);
+      }
+      r.pose.head.setFromAxisAngle(_v.set(1, 0, 0), Math.sin(this.t * 4) * 0.08);
+      if (this.attack === 'bbq') this.signPose(this.t, ctx);
+      if (this.announceT <= 0) {                           // ...then the attack itself
+        this.signT = SIGN_T[this.attack] ?? 1.6; this.signDur = this.signT;
+        if (this.attack !== 'bbq') this.startAttackProps();
+        // (the attack's effect itself is fired by the director, so it always lands)
+      }
+      return;
+    }
+    if (this.signT > 0) {                                  // the signature move itself
+      this.signT -= dt;
+      const st = this.signDur - this.signT;
+      if (this.attack === 'siu' && st > 0.3 && st < 0.9) this.rag.yaw += Math.PI * dt / 0.6;     // the spin in the air
+      else this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, this.attack === 'siu' ? 2 : 7);
+      this.signPose(st, ctx);
+      return;
+    }
+    // attacks that are the whole move
+    if (this.attack === 'rod' || this.attack === 'oasis' || this.attack === 'turkey') { this.endAttackProps(); done(); return; }
+    if (this.attack === 'bbq') {                          // throws the barbecue food at Ronnie, then packs up
+      this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 5);
+      this.signPose(this.t, ctx);
+      if (this.stateT > 1.3 && this.passes > 0) {
+        this.passes--; this.stateT = 0.2;
+        const it = ['pepper', 'tomato', 'broccoli', 'cauliflower'][this.passes % 4];
+        if (this.bbqFood && this.bbqFood[this.passes]) this.bbqFood[this.passes].visible = false;
+        this.throwNow(ctx, { item: it, speed: 3.3, spread: 0.08 });
+        this.say(['Last one! Chargrilled cauliflower! It\'s basically a steak!', 'Broccoli kebab, Ronnie! Lewy loves these!', 'Grilled tomato! Better than anything out of Canvey Lake!', 'Healthy barbecue, Ronnie! Get that pepper down you!'][this.passes], 3);
+      }
+      if (this.passes <= 0 && this.stateT > 1.3) { this.endAttackProps(); done(); }
+      return;
+    }
+    switch (this.id) {
+      case 'chloe':     // salad ambush, then names the next food you eat
+        this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 5);
+        if (this.stateT > 1.2 && this.salads > 0) { this.salads--; this.stateT = 0.2; this.throwNow(ctx, { item: pickVeg(this.salads % 2 ? 'sprout' : 'broccoli'), speed: 3.2, spread: 0.1 }); }
+        if (this.salads <= 0 && this.stateT > 1.2) { g.nameNextFood(this); this.say('name', 4); done(); }
+        break;
+      case 'lewis':     // walks to the snack station and swaps the cans for protein shakes
+      case 'connor':    // ...or buys a round of stout
+      case 'aidan': {   // ...or puts a pint down to settle
+        _v2.set(this.stationX - this.pos.x, 0, this.stationZ - this.pos.z);
+        const d = _v2.length();
+        if (this.phase === 0) {
+          if (d > 0.2 && this.stateT < 6) { this.turnTo(Math.atan2(_v2.x, _v2.z), dt, 6); r.moveVel.copy(_v2.normalize()).multiplyScalar(0.95); this.walkPose(dt, 0.95); }
+          else { this.phase = 1; this.stateT = 0; }
+        } else if (this.phase === 1) {
+          this.turnTo(Math.atan2(this.room.spawns[0].x - this.pos.x, this.room.spawns[0].z - this.pos.z), dt, 6);
+          r.aim('uArmR', -0.2, -0.3, 1); r.aim('lArmR', 0, -0.4, 1);
+          if (this.stateT > 0.7) {
+            if (this.id === 'lewis') { g.placeOnStation('shake', this); g.placeOnStation('shake', this); this.say('Shakes on the table, bro. Gains only.', 4); }
+            else if (this.id === 'connor') { this.pintGiven = true; g.placeOnStation('pint', this); g.placeOnStation('pint', this); this.say('settle', 4); }
+            else { this.pintGiven = true; g.placeOnStation('pint', this); this.say('settle', 4); }
+            this.phase = 2; this.stateT = 0;
+          }
+        } else {
+          if (this.id === 'lewis') { r.aim('uArmL', 1, 0.15, 0); r.aim('lArmL', 0.1, 1, 0.1); r.aim('uArmR', -1, 0.15, 0); r.aim('lArmR', -0.1, 1, 0.1); }
+          if (this.stateT > 2) { this.pintGiven = false; done(); }
+        }
+        break;
+      }
+      case 'ian':       // the "healthy" barbecue: grilled veg lobbed at Ronnie
+        this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 5);
+        if (this.stateT > 1.5 && this.passes > 0) { this.passes--; this.stateT = 0.2; this.throwNow(ctx, { item: ['pepper', 'tomato', 'cauliflower', 'broccoli'][this.passes % 4], speed: 3.4, spread: 0.1 }); }
+        if (this.passes <= 0 && this.stateT > 1.5) done();
+        break;
+      case 'alfie':     // volleys: fast and flat
+        this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 6);
+        if (this.stateT > 1.1 && this.passes > 0) { this.passes--; this.stateT = 0.2; this.throwNow(ctx, { item: pickVeg('apple'), speed: 4.6, spread: 0.14 }); }
+        if (this.passes <= 0 && this.stateT > 1.1) done();
+        break;
+      case 'ethan':     // Galáctico free kicks: curling veg at Ronnie's face
+        this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 5);
+        if (this.stateT > 1.4 && this.passes > 0) { this.passes--; this.stateT = 0.2; this.throwNow(ctx, { item: pickVeg(), speed: 4.2, spread: 0.12 }); }
+        if (this.passes <= 0 && this.stateT > 1.4) done();
+        break;
+      case 'harry':     // "throws it away" — straight at Ronnie's mouth
+        this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 5);
+        if (this.stateT > 1.6 && this.passes > 0) { this.passes--; this.stateT = 0.3; this.throwNow(ctx, { item: pickJunk(), speed: 3.2, food: true }); }
+        if (this.passes <= 0 && this.stateT > 1.6) done();
+        break;
+      case 'noah': {    // the tackle
+        _v2.set(ctx.head.x - this.pos.x, 0, ctx.head.z - this.pos.z);
+        const d = _v2.length();
+        this.turnTo(Math.atan2(_v2.x, _v2.z), dt, 8);
+        if (this.stateT < 0.8) { r.aim('uArmL', 0.3, -0.3, 1); r.aim('uArmR', -0.3, -0.3, 1); r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), 0.5); break; }   // crouch, bind...
+        r.moveVel.copy(_v2.normalize()).multiplyScalar(3.0);
+        this.walkPose(dt, 3.0);
+        r.pose.chest.setFromAxisAngle(_v.set(1, 0, 0), 0.45);
+        if (d < 0.55) {
+          g.tackled(this);
+          this.knockOut('bounced');
+          this.rag.shove(-_v2.x * 3.5, 2.2, -_v2.z * 3.5);
+          this.onEvent && this.onEvent('acted', this);
+        } else if (this.stateT > 5) done();
+        break;
+      }
+      case 'oliver':    // shame cam: films, follower count goes up with every bite
+        this.turnTo(Math.atan2(ctx.head.x - this.pos.x, ctx.head.z - this.pos.z), dt, 4);
+        r.aim('uArmR', -0.2, 0.2, 1); r.aim('lArmR', -0.1, 0.6, 1);
+        this.filming -= dt;
+        if (this.filming <= 0) { this.say(`${fmt(this.followers)} views. It's gone viral.`, 4); if (this.followerSprite) this.followerSprite.visible = false; done(); }
+        break;
+      case 'dylan':     // hidden in the bin... then LEAPS
+        if (this.phase === 0) {
+          r.aim('uLegL', 0, 0.2, 1); r.aim('uLegR', 0, 0.2, 1);
+          if (this.stateT > 2.5) {
+            this.phase = 1; this.stateT = 0;
+            sfx('boing', this.pos, 1);
+            this.say('RONNIEEEEEEE!', 5);
+            const target = ctx.handPos ? ctx.handPos() : ctx.head;
+            const vel = ballistic(this.pos.clone(), target, 4, this.room.bounds.y1);
+            this.rag.setMode('ragdoll', 0.2);
+            for (const p of this.rag.list) { p.body.velocity.set(vel.x, vel.y, vel.z); }
+          }
+        } else {
+          this.flailPose(this.t);
+          const near = ctx.attachPoint && ctx.attachPoint(this);
+          if (near) { this.cling(near); }
+          else if (this.stateT > 2) this.knockOut('hit');
+        }
+        break;
+    }
+  }
+
+  actAfter(dt, ctx) {
+    if (this.id === 'oliver') {
+      if (!this.followerSprite) {
+        this.fc = document.createElement('canvas'); this.fc.width = 512; this.fc.height = 128;
+        this.ft = new THREE.CanvasTexture(this.fc); this.ft.colorSpace = THREE.SRGBColorSpace;
+        this.followerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.ft, transparent: true, depthTest: false }));
+        this.followerSprite.scale.set(0.7, 0.175, 1); this.followerSprite.renderOrder = 11; this.followerSprite.visible = false;
+        this.scene.add(this.followerSprite); this.extra = [this.followerSprite];
+      }
+      const on = this.filming > 0 && this.state === 'act';
+      this.followerSprite.visible = on;
+      if (on) {
+        this.headPos(this.followerSprite.position).y += 0.42;
+        if (this.drawnFollowers !== this.followers) {
+          this.drawnFollowers = this.followers;
+          const g = this.fc.getContext('2d');
+          g.clearRect(0, 0, 512, 128); g.fillStyle = 'rgba(0,0,0,0.75)'; g.fillRect(0, 0, 512, 128);
+          g.fillStyle = '#ff1744'; g.beginPath(); g.arc(50, 64, 20, 0, 7); g.fill();
+          g.font = `900 34px ${FONT}`; g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('LIVE · CLIKCLOK', 85, 40);
+          g.fillStyle = '#00e5ff'; g.font = `900 46px ${FONT}`; g.fillText(`${fmt(this.followers)} followers`, 85, 92);
+          this.ft.needsUpdate = true;
+        }
+      }
+    }
+  }
+
+  // events from the game while acting
+  onRonnieAte() {
+    if (this.id === 'oliver' && this.filming > 0 && this.state === 'act') {
+      this.followers = Math.round(this.followers * (1.25 + Math.random() * 0.2) + 20000 + Math.random() * 60000);
+      if (Math.random() < 0.5) this.say('viral', 3);
+    }
+  }
+
+  // quick throw without the long wind-up (used inside interventions)
+  throwNow(ctx, spec) { this.throwSpec = spec; this.release(ctx); this.state = 'act'; }
+
+  hideInBin() {
+    const b = this.room.blockers.find(b => b.y1 && b.y1 < 0.5 && b.x1 - b.x0 < 0.5) || { x0: -0.25, x1: 0.15, z0: -2.25, z1: -1.8 };
+    const x = (b.x0 + b.x1) / 2, z = Math.max(b.z0, b.z1) + 0.25;
+    this.rag.placeAt(x, z, 0);
+  }
+
+  // Dylan hangs off Ronnie's hand until shaken off
+  cling(anchor) {
+    const part = this.rag.parts.lArmR, b = part.body;
+    this.clingJoint = new CANNON.PointToPointConstraint(anchor.body, new CANNON.Vec3(0, 0, 0), b, new CANNON.Vec3((this.rag.parts.lArmR.def.b.x - this.rag.parts.lArmR.def.center.x), 0, 0), 2500);
+    this.physics.world.addConstraint(this.clingJoint);
+    this.clingAnchor = anchor;
+    this.shake = 0;
+    this.state = 'clinging'; this.stateT = 0;
+    this.say('cling', 5);
+    this.game.clinging(this, true);
+  }
+  clingUpdate(dt, ctx) {
+    const a = this.clingAnchor;
+    if (a && a.speed > 2.4) this.shake += dt * (a.speed - 2);
+    if (this.shake > 0.7) { this.letGo(true); return; }
+    if (this.stateT > 9) this.letGo(false);
+  }
+  letGo(flung) {
+    if (this.clingJoint) { this.physics.world.removeConstraint(this.clingJoint); this.clingJoint = null; }
+    this.game.clinging(this, false);
+    if (flung) { this.rag.shove(0, 2, 0); this.knockOut('shaken'); this.onEvent && this.onEvent('acted', this); }
+    else { this.state = 'ko'; this.stateT = 1.5; this.rag.setMode('ragdoll', 0); this.onEvent && this.onEvent('acted', this); }
+  }
+}
+
+function fmt(n) { return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n); }
