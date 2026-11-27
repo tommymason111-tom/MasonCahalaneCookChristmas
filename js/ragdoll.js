@@ -22,7 +22,7 @@ import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 // (the family scans are shipped compressed: meshopt, quantized ints. Every attribute is turned back into plain floats before the skinning works on it)
-function toFloat(geo) { for (const k of Object.keys(geo.attributes)) { const a = geo.attributes[k]; if (a.array instanceof Float32Array && !a.normalized && !a.isInterleavedBufferAttribute) continue;
+export function toFloat(geo) { for (const k of Object.keys(geo.attributes)) { const a = geo.attributes[k]; if (a.array instanceof Float32Array && !a.normalized && !a.isInterleavedBufferAttribute) continue;
     const n = a.count, sz = a.itemSize, out = new Float32Array(n * sz); for (let i = 0; i < n; i++) { out[i * sz] = a.getX(i); if (sz > 1) out[i * sz + 1] = a.getY(i); if (sz > 2) out[i * sz + 2] = a.getZ(i); if (sz > 3) out[i * sz + 3] = a.getW(i); }
     geo.setAttribute(k, new THREE.BufferAttribute(out, sz)); }
   return geo; }

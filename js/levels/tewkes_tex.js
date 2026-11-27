@@ -208,7 +208,7 @@ export function streetSignTex(name, sub) {
     g.fillStyle = '#c62828'; g.font = '700 22px Arial'; g.fillText(sub, w / 2, 102);
   });
 }
-// the TV's screen: plain dark grey (the quiz draws on it)
+// a number plate
 export function carPlateTex(t) {
   return canvasTex(256, 56, (g, w, h) => { g.fillStyle = '#f7d117'; g.fillRect(0, 0, w, h); g.fillStyle = '#111'; g.font = '700 38px "Arial Narrow", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, w / 2, h / 2 + 2); });
 }

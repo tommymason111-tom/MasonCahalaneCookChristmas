@@ -57,6 +57,7 @@ atlasSigns(scene); mergeMaterialGroups(scene);
 FLOOR.at = room.floorAt || null;
 if (room.shadows) { renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; }
 quality.attach({ renderer, scene, camera, room });
+if (room.familyPhotos) setTimeout(() => import('../portraits.js').then(m => m.paintPhotos(renderer, room.familyPhotos)).catch(e => console.warn('photos', e)), 400);      // (the family photos on the walls, taken from their own 3D models)
 room.camera = camera;
 room.start = room.start || { x: 0, z: 0, yaw: 0 };
 

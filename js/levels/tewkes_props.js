@@ -163,7 +163,6 @@ export function car(k, x, z, ry, col, { kind = 'hatch', frost = true } = {}) {
   P(taper(W - 0.12, 0.48, cabL, 0.86, kind === 'hatch' ? 0.62 : 0.55, kind === 'hatch' ? 0.25 : 0.05), GL, 0, 1.09, cabZ);   // the glasshouse
   { const g = taper(W - 0.1, 0.05, cabL * (kind === 'hatch' ? 0.62 : 0.55) + 0.04, 0.98, 0.98); P(g, frost ? FR : col, 0, 1.345, cabZ + (kind === 'hatch' ? 0.25 : 0.05)); }   // the roof (frosty)
   for (const sx of [-1, 1]) for (const lz of [-0.55, 0.15, 0.75]) P(new THREE.BoxGeometry(0.04, 0.46, 0.06), dark, sx * (W / 2 - 0.12), 1.09, cabZ + lz * (cabL / 2.3) * 0.75);   // pillars
-  if (frost) P(new THREE.BoxGeometry(W - 0.3, 0.01, 0.5), FR, 0, 1.11, cabZ - cabL / 2 + 0.38, -0.95);                  // the frosted windscreen
   for (const lz of [-L / 2 + 0.75, L / 2 - 0.75]) for (const sx of [-1, 1]) { P(new THREE.CylinderGeometry(0.31, 0.31, 0.2, 16), 0x151515, sx * (W / 2 - 0.1), 0.31, lz, 0, Math.PI / 2); P(new THREE.CylinderGeometry(0.17, 0.17, 0.21, 10), 0xa8acb0, sx * (W / 2 - 0.1), 0.31, lz, 0, Math.PI / 2);
     P(new THREE.BoxGeometry(0.06, 0.12, 0.8), shade(col, 0.6), sx * (W / 2 - 0.01), 0.62, lz); }                  // wheels, arches
   for (const sx of [-1, 1]) { P(new THREE.BoxGeometry(0.34, 0.1, 0.04), 0xfff6d8, sx * 0.6, 0.62, -L / 2 + 0.01); P(new THREE.BoxGeometry(0.34, 0.1, 0.04), 0xc62828, sx * 0.6, 0.64, L / 2 - 0.01); P(new THREE.BoxGeometry(0.06, 0.05, 0.14), dark, sx * (W / 2 - 0.02), 0.95, cabZ - cabL / 2 + 0.25); }

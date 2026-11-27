@@ -240,7 +240,7 @@ export function buildTewkesRoad(scene) {
     k.box(len - 0.05, 0.05, 0.08, mx, 1.9, mz, WHITE, { rot: [0, ang, 0] });
     Q.add(laceMat, len - 0.1, 1.34, mx + nx * 0.07, 1.5, mz + nz * 0.07, ang);                                  // nets
   }
-  for (const x of [-2.59, 0.19]) k.box(0.02, 2.3, WT + 0.01, x, 1.15, HZF, PAINT); for (const x of [-2.5, 0.1]) k.box(0.14, 0.78, 0.3, x, 0.39, HZF + 0.2, PAINT); k.box(2.8, 0.02, WT + 0.01, -1.2, 2.29, HZF, PAINT);
+  for (const x of [-2.59, 0.19]) k.box(0.02, 2.3, WT + 0.01, x, 1.15, HZF, PAINT); k.box(2.8, 0.02, WT + 0.01, -1.2, 2.29, HZF, PAINT);
   k.blockers.push({ x0: -2.8, x1: -1.85, z0: 8.85, z1: 9.5, y1: 2.4 }, { x0: -2.05, x1: -0.35, z0: 9.2, z1: 9.5, y1: 2.4 }, { x0: -0.55, x1: 0.4, z0: 8.85, z1: 9.5, y1: 2.4 });
   for (const [cx, s] of [[-2.75, 1], [0.35, -1]]) { k.box(0.34, 2.15, 0.1, cx, 1.18, 8.31, 0x6a1a2a); k.box(0.4, 0.07, 0.12, cx + s * 0.02, 1.05, 8.3, 0x5a1420); for (let i = 0; i < 4; i++) k.box(0.05, 2.1, 0.12, cx - 0.12 + i * 0.08, 1.2, 8.3, 0x7a2232); }   // velvet curtains, tied back
   k.box(3.5, 0.2, 0.14, -1.2, 2.36, 8.3, 0x6a1a2a); for (let i = 0; i < 14; i++) k.box(0.22, 0.05, 0.15, -2.85 + i * 0.25, 2.24, 8.3, i % 2 ? 0x7a2232 : 0x5a1420);   // pelmet with a fringe

@@ -2,14 +2,14 @@
 // the models have loaded, the people are posed side by side, photographed (rendered offscreen, head and
 // shoulders), and printed onto the canvas over a painted backdrop with a caption.
 import * as THREE from 'three';
-import { fetchModel, skinOf } from './ragdoll.js';
+import { fetchModel, skinOf, toFloat } from './ragdoll.js';
 
 async function personMesh(url) {
   const gltf = await fetchModel(url);
   let src = null; gltf.scene.traverse(o => { if (o.isMesh && !src) src = o; });
   src.updateWorldMatrix(true, false);
-  const geo = src.geometry.clone(); geo.applyMatrix4(src.matrixWorld);
-  const old = src.material, skin = skinOf(gltf, old), mat = new THREE.MeshLambertMaterial({ map: skin.map, color: 0xffffff, emissive: 0x2a2a2a, emissiveMap: skin.map });
+  const geo = toFloat(src.geometry.clone()); geo.applyMatrix4(src.matrixWorld); if (!geo.attributes.normal) geo.computeVertexNormals();      // (compressed scans: plain floats first)
+  const old = src.material, skin = skinOf(gltf, old), vcol = !skin.map && !!geo.attributes.color, mat = new THREE.MeshLambertMaterial({ map: skin.map, color: 0xffffff, emissive: vcol ? 0x111111 : 0x2a2a2a, emissiveMap: skin.map, vertexColors: vcol });      // (the made-up people: colours on the vertices)
   if (old.aoMap) { mat.alphaMap = skin.alphaMap; mat.alphaTest = 0.5; mat.side = THREE.DoubleSide; }
   return new THREE.Mesh(geo, mat);
 }
