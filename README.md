@@ -85,7 +85,7 @@ so elbows, knees and shoulders bend cleanly. Upload them to `assets/incoming/` w
 index.html            the page: menus, HUD, touch controls (styles)
 js/xmas/              this game: menu, main loop, family, quiz, questions, Feed Nan + Fling, HUD, Christmas food
 js/levels/            the houses (sandybay.js, tewkes.js) and the level kit
-js/*.js               Ronnie Simulator's engine: ragdolls, gait, characters, player, hands, food, physics, audio, quality
+js/*.js               Ronnie Simulator's engine (only the parts this game uses): ragdolls, gait, characters, player, hands, food, physics, audio, quality
 assets/family/        the family's 3D models;  assets/hands/: hand models (WebXR Input Profiles, MIT)
 tools/                model maker, model and level viewers
 ```

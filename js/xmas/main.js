@@ -28,6 +28,7 @@ addChristmasFood();
 for (const id of FAMILY_IDS) { const f = FAMILY[id]; SQUAD[id] = { ...f, look: { skin: 0xf1c3a5, top: 0xaa2222, bottom: 0x222233 }, body: { h: f.h }, title: '', fail: '' }; }
 
 const SEL = await window.xmasMenu;      // { me, place, mode }
+if (SEL.me === 'joan' && SEL.mode === 'hangry') SEL.mode = 'quiz';      // (Nan can't feed herself. Well, she can. That's the problem.)
 const ME = SEL.me;
 const MODEL_LOAD = preloadModels(FAMILY_IDS.filter(id => id !== ME).map(id => FAMILY[id].model));
 window.__ls && window.__ls('family');
