@@ -68,9 +68,6 @@
     #hud { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 20; }
     #hud.on { display: block; } body.in-vr #hud { display: none; }
     #hud-top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(560px, calc(100% - 120px)); }
-    #hud-score { display: flex; border-radius: 14px; overflow: hidden; border: 2px solid var(--gold); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
-    .ts { padding: 5px 14px; display: flex; gap: 10px; align-items: center; } .ts b { font: 900 12px "Arial Black", Arial; } .ts span { font: 900 22px "Arial Black", Arial; }
-    .t-karen { background: #d23b3b; } .t-lisa { background: #2f8a4a; }
     #hud-obj { background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 10px; font: 700 13px Arial; text-align: center; }
     #hud-obj:empty { display: none; }
     #hud-hangry { position: absolute; left: max(12px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); width: 170px; background: rgba(0,0,0,0.5); border: 2px solid var(--gold); border-radius: 12px; padding: 6px 8px; }
@@ -81,17 +78,8 @@
     #hud-pause { position: absolute; right: max(12px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--gold); background: rgba(90,15,24,0.85); color: #fff; font: 900 16px Arial; pointer-events: auto; }
     #hud-toast { position: absolute; left: 50%; top: 120px; transform: translateX(-50%) translateY(-10px); max-width: min(520px, calc(100% - 32px)); background: rgba(90,15,24,0.92); border: 2px solid var(--gold); border-radius: 14px; padding: 10px 14px; font: 700 14px Arial; text-align: center; opacity: 0; transition: opacity 0.25s, transform 0.25s; }
     #hud-toast.on { opacity: 1; transform: translateX(-50%); }
-    #quiz-card { position: absolute; left: 50%; bottom: max(150px, calc(env(safe-area-inset-bottom) + 140px)); transform: translateX(-50%); width: min(620px, calc(100% - 24px)); box-sizing: border-box; pointer-events: auto;
       background: linear-gradient(180deg, rgba(200,34,46,0.96), rgba(110,12,22,0.96)); border: 3px solid var(--gold); border-radius: 18px; padding: 10px 12px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: cardin 0.3s cubic-bezier(.2,1.5,.4,1); }
     @keyframes cardin { from { transform: translateX(-50%) translateY(30px) scale(0.9); opacity: 0; } }
-    .qc-top { display: flex; justify-content: space-between; font: 900 12px "Arial Black", Arial; color: var(--gold); }
-    #qc-q { font: 800 clamp(15px, 3.6vw, 20px)/1.25 Arial; margin: 6px 0; }
-    #qc-whisper { font: italic 13px Arial; color: #ffe9b0; min-height: 16px; margin-bottom: 6px; }
-    #qc-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .qa { text-align: left; padding: 10px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.25); color: #fff; font: 700 14px Arial; display: flex; gap: 8px; align-items: center; min-height: 48px; }
-    .qa b { color: var(--gold); font: 900 18px "Arial Black", Arial; }
-    .qa.mine { border-color: var(--gold); background: #1c5ac8; } .qa.right { background: #2fae4e !important; border-color: #b8ffc8; } .qa.wrong { background: #7a1010; }
-    #quiz-card.locked .qa:not(.mine) { opacity: 0.6; } #quiz-card.revealed .qa { opacity: 1; } #quiz-card.host .qa { pointer-events: none; }
     #hud-pausemenu, #hud-result { position: absolute; inset: 0; background: rgba(10,2,4,0.65); display: flex; align-items: center; justify-content: center; pointer-events: auto; z-index: 30; }
     .pm, .rs { background: linear-gradient(180deg, #c8222e, #8a0f1a); border: 3px solid var(--gold); border-radius: 20px; padding: 20px; width: min(420px, calc(100% - 32px)); box-sizing: border-box; text-align: center; }
     .pm h2, .rs h1 { font: 900 28px Georgia, serif; color: var(--gold); margin: 0 0 12px; } .pm button, .rs button { display: block; width: 100%; margin: 8px 0; padding: 12px; border-radius: 14px; border: 2px solid var(--gold); background: rgba(0,0,0,0.25); color: #fff; font: 900 16px "Arial Black", Arial; }
@@ -130,12 +118,12 @@
   <div id="menu">
     <div class="lights"></div>
     <section class="scr" id="sc-title">
-      <div class="title-small">The Mason · Cahalane · Cook</div>
+      <div class="title-small">The Masons · The Cahalanes · The Cooks</div>
       <div class="title-big">Christmas Day<br>at Nan's</div>
       <div class="title-sub">— THE GAME —</div>
       <div class="panel">
         <button class="big" id="btn-play">🎁 PLAY</button>
-        <div class="tag">Christmas Day · dinner at two · Nan gets hangry at 2:01 · one quiz · one argument (Paul)</div>
+        <div class="tag">Christmas Day · dinner at two · Nan gets hangry at 2:01 · one argument (Paul) · two families · one Nan</div>
       </div>
     </section>
     <section class="scr" id="sc-who" hidden>

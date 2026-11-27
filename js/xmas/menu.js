@@ -1,6 +1,6 @@
 // The front end, set up like the Boxing Day quiz: title → who are you? → which house? → what are we playing? →
 // a quick summary → in. Resolves window.xmasMenu with { me, place, mode }.
-// Quick start for testing: ?go=1&me=tommy&place=sandybay&mode=quiz
+// Quick start for testing: ?go=1&me=tommy&place=sandybay&mode=roam
 import { FAMILY, TEAMS } from './family.js';
 
 const PLACES = [
@@ -8,25 +8,24 @@ const PLACES = [
   { id: 'tewkes', ico: '🏠', name: "NAN'S OLD HOUSE", sub: 'Tewkes Road', desc: 'The family home where Karen and Lisa grew up. Front room with the gas fire, the dining room, the kitchen, the long back garden, and the height marks on the door frame.' },
 ];
 const MODES = [
-  { id: 'quiz', ico: '🎄', name: "NAN'S CHRISTMAS QUIZ", desc: 'The full quiz in the lounge: four rounds, Nan reads, Team Karen v Team Lisa. Feed Nan if she gets hangry.' },
-  { id: 'quick', ico: '⚡', name: 'QUICK QUIZ', desc: 'Two short rounds: the Christmas Round and the Family Round.' },
   { id: 'hangry', ico: '🍫', name: 'FEED NAN', desc: 'Three minutes. Nan is getting HANGRY. Find what she wants and get it to her before she blows.', noJoan: true },
   { id: 'fling', ico: '🚀', name: 'FLING THE FAMILY', desc: 'Out in the garden. Everyone queues up; launch them down the lawn. Furthest fling wins.' },
-  { id: 'roam', ico: '🎁', name: 'FREE ROAM', desc: 'No quiz, no timer. Wander round, eat everything, pull crackers, annoy Michael.' },
+  { id: 'roam', ico: '🎁', name: 'FREE ROAM', desc: 'No timer. Wander round, eat everything, pull crackers, annoy Michael.' },
 ];
 const GROUPS = [
-  { name: 'Team Karen', color: TEAMS.karen.color, ids: TEAMS.karen.members },
-  { name: 'Team Lisa', color: TEAMS.lisa.color, ids: TEAMS.lisa.members },
-  { name: 'The Quizmaster', color: '#e6b422', ids: ['joan'] },
+  { name: 'The Masons', color: TEAMS.mason.color, ids: TEAMS.mason.members },
+  { name: 'The Cahalanes', color: TEAMS.cahalane.color, ids: TEAMS.cahalane.members },
+  { name: 'Nan (Joan Cook)', color: TEAMS.cook.color, ids: TEAMS.cook.members },
 ];
 
 const $ = (s) => document.querySelector(s);
 const q = new URLSearchParams(location.search);
 let saved = {}; try { saved = JSON.parse(localStorage.getItem('xm_menu') || '{}'); } catch (e) {}
-const sel = { me: q.get('me') || saved.me || 'tommy', place: q.get('place') || saved.place || 'sandybay', mode: q.get('mode') || saved.mode || 'quiz' };
+const sel = { me: q.get('me') || saved.me || 'tommy', place: q.get('place') || saved.place || 'sandybay', mode: q.get('mode') || saved.mode || 'hangry' };
 if (!FAMILY[sel.me]) sel.me = 'tommy';
 if (!PLACES.some(p => p.id === sel.place)) sel.place = 'sandybay';
-if (!MODES.some(m => m.id === sel.mode)) sel.mode = 'quiz';
+if (!MODES.some(m => m.id === sel.mode)) sel.mode = 'hangry';
+if (sel.me === 'joan' && sel.mode === 'hangry') sel.mode = 'roam';
 
 let resolve; window.xmasMenu = new Promise(r => { resolve = r; });
 const screens = ['title', 'who', 'where', 'what', 'summary'];
@@ -46,14 +45,14 @@ function drawWhat() {
 function go() {
   try { localStorage.setItem('xm_menu', JSON.stringify(sel)); } catch (e) {}
   const f = FAMILY[sel.me], p = PLACES.find(x => x.id === sel.place), m = MODES.find(x => x.id === sel.mode);
-  const team = f.team === 'host' ? 'the quizmaster' : TEAMS[f.team].name;
+  const team = TEAMS[f.team].name;
   $('#sum').innerHTML = `<div class="sline"><span class="em">${f.emoji}</span> You're <b>${f.name}</b> (${team})</div><div class="sline"><span class="em">${p.ico}</span> ${p.name} · ${p.sub}</div><div class="sline"><span class="em">${m.ico}</span> ${m.name}</div>
-    <div class="teams"><div style="--c:${TEAMS.karen.color}"><b>TEAM KAREN</b>${TEAMS.karen.members.map(id => FAMILY[id].name).join(' · ')}</div><div style="--c:${TEAMS.lisa.color}"><b>TEAM LISA</b>${TEAMS.lisa.members.map(id => FAMILY[id].name).join(' · ')}</div><div style="--c:#e6b422"><b>QUIZMASTER</b>Nan (Joan)</div></div>`;
+    <div class="teams">${Object.values(TEAMS).map(t => `<div style="--c:${t.color}"><b>${t.name.toUpperCase()}</b>${t.members.map(id => FAMILY[id].name).join(' · ')}</div>`).join('')}</div>`;
   show('summary');
   setTimeout(() => { $('#menu').hidden = true; $('#loadscreen').hidden = false; resolve({ ...sel }); }, q.get('go') ? 0 : 2600);
 }
 
-$('#who-list').addEventListener('click', (e) => { const b = e.target.closest('.pc'); if (!b) return; sel.me = b.dataset.id; if (sel.me === 'joan' && sel.mode === 'hangry') sel.mode = 'quiz'; drawWho(); blip(); });
+$('#who-list').addEventListener('click', (e) => { const b = e.target.closest('.pc'); if (!b) return; sel.me = b.dataset.id; if (sel.me === 'joan' && sel.mode === 'hangry') sel.mode = 'roam'; drawWho(); blip(); });
 $('#where-list').addEventListener('click', (e) => { const b = e.target.closest('.bc'); if (!b) return; sel.place = b.dataset.id; drawWhere(); blip(); });
 $('#what-list').addEventListener('click', (e) => { const b = e.target.closest('.bc'); if (!b || b.disabled) return; sel.mode = b.dataset.id; drawWhat(); blip(); });
 $('#btn-play').addEventListener('click', () => { drawWho(); show('who'); });

@@ -1,8 +1,8 @@
 // THE FAMILY: the nine people at Nan's for Christmas Day.
 //
-// Two teams for the quiz, and Nan (Joan) runs it from her armchair:
-//   Team Karen: Tommy, Charli, Karen, Paul      Team Lisa: Lisa, Michael, Sophie, Jimmy
-// Karen and Lisa are sisters; Joan is their mum.
+// Three families round Nan's:
+//   The Masons: Tommy, Charli, Karen, Paul      The Cahalanes: Lisa, Michael, Sophie, Jimmy      The Cooks: Joan (Nan)
+// Karen (Mason) and Lisa (Cahalane) are sisters; Joan Cook is their mum.
 //
 // Every entry is a squad-style definition (see js/squad.js SquadMember): the game registers them into SQUAD so they get
 // the same ragdoll, gait, seating, speech bubbles and physics as everyone in Ronnie Simulator.
@@ -23,21 +23,21 @@ function bindFromMarks(h, m, o = {}) {
 }
 
 export const TEAMS = {
-  karen: { name: 'Team Karen', short: 'KAREN', color: '#d23b3b', members: ['tommy', 'charli', 'karen', 'paul'] },
-  lisa: { name: 'Team Lisa', short: 'LISA', color: '#2f8a4a', members: ['lisa', 'michael', 'sophie', 'jimmy'] },
+  mason: { name: 'The Masons', short: 'MASON', color: '#d23b3b', members: ['tommy', 'charli', 'karen', 'paul'] },
+  cahalane: { name: 'The Cahalanes', short: 'CAHALANE', color: '#2f8a4a', members: ['lisa', 'michael', 'sophie', 'jimmy'] },
+  cook: { name: 'The Cooks', short: 'COOK', color: '#e6b422', members: ['joan'] },
 };
-export const HOST = 'joan';
 
 const H = { tommy: 1.80, paul: 1.80, karen: 1.62, charli: 1.65, lisa: 1.60, michael: 1.77, sophie: 1.66, jimmy: 1.98, joan: 1.52 };
 
 export const FAMILY = {
   tommy: {
-    name: 'Tommy', role: "Karen and Paul's son · marketing in London", team: 'karen', color: '#3a7bd5', voicePitch: 1.0, emoji: '😎',
+    name: 'Tommy', role: "Karen and Paul's son · marketing in London", team: 'mason', color: '#3a7bd5', voicePitch: 1.0, emoji: '😎',
     model: './assets/family/tommy.glb', modelBody: { h: H.tommy, fit: true },
     blurb: 'Works in marketing in London. Thinks he could rebrand Christmas. Gets wound up by his dad every single year.',
     banks: {
-      greet: ['Merry Christmas, Nan! I got the early train. Well, the second train.', "Right, who's ready to lose? Team Lisa, I'm looking at you."],
-      chatter: ["In London we'd call this a team-building exercise.", 'I do marketing, Nan. I could rebrand this quiz for you. "Quiz-mas."', 'Dad. DAD. It\'s not your turn.', "Jimmy, mate, you don't have to duck in EVERY doorway. Oh. You do.",
+      greet: ['Merry Christmas, Nan! I got the early train. Well, the second train.', "Right, who's on the Prosecco? Cahalanes, I'm looking at you."],
+      chatter: ["In London we'd call this a team-building exercise.", 'I do marketing, Nan. I could rebrand Christmas for you. "Nan-ta Claus."', 'Dad. DAD. It\'s not your turn.', "Jimmy, mate, you don't have to duck in EVERY doorway. Oh. You do.",
         'Sophie, which line are you getting back? Same. We could share a train and not talk.', 'Nan, how many friends have you GOT round here? The whole street waved at me.', "Michael's been here ten minutes and he's already got the remote. How?",
         "Dad's like a pop-up ad. You close him and he comes straight back.", 'Charli, stop filming me eating.', 'Has anyone seen the Quality Street? Oh. Nan.'],
       right: ['Easy. EASY.', "That's the London education, that.", 'Write it down, Charli. Big letters.'],
@@ -47,9 +47,9 @@ export const FAMILY = {
     },
   },
   charli: {
-    name: 'Charli', role: "Tommy's sister", team: 'karen', color: '#e05a9a', voicePitch: 1.25, emoji: '📱',
+    name: 'Charli', role: "Tommy's sister", team: 'mason', color: '#e05a9a', voicePitch: 1.25, emoji: '📱',
     model: './assets/family/charli.glb', modelBody: { h: H.charli, fit: true, bind: bindFromMarks(H.charli, { sh: [0.109, 0.830], el: [0.120, 0.654], ha: [0.125, 0.511] }, { girth: 0.92 }) },
-    blurb: 'Knows every answer. Nobody listens. Films everything for the group chat.',
+    blurb: 'Says everything first. Nobody listens. Films everything for the group chat.',
     banks: {
       greet: ['Merry Christmas! Everyone stand still, I need one photo. ONE.', 'Nan! You look lovely! Is that new? It\'s the same one. Still lovely.'],
       chatter: ['I literally said that.', 'Dad, sit DOWN.', "I'm putting this on the group chat.", 'Did anyone film that?', "Sophie, what are you doing for New Year's? Can I come? I'm coming.",
@@ -60,12 +60,12 @@ export const FAMILY = {
     },
   },
   karen: {
-    name: 'Karen', role: "Joan's daughter · Tommy and Charli's mum", team: 'karen', color: '#a8325a', voicePitch: 1.05, emoji: '🍷',
+    name: 'Karen', role: "Joan's daughter · Tommy and Charli's mum", team: 'mason', color: '#a8325a', voicePitch: 1.05, emoji: '🍷',
     model: './assets/family/karen.glb', modelBody: { h: H.karen, fit: true, bind: bindFromMarks(H.karen, { sh: [0.109, 0.814, 0], el: [0.122, 0.825, 0.142], ha: [0.140, 0.857, 0.262] }) },
     blurb: "Lisa's sister and Joan's daughter. Not getting involved. Getting involved.",
     banks: {
       greet: ['Happy Christmas, Mum! Lisa, you\'re early. You\'re never early.', "Hello, hello! Paul, take the coats. PAUL."],
-      chatter: ['Paul.', "I'm not getting involved.", 'Can we just do the next question?', 'Lisa, remember when you broke the greenhouse and blamed me? 1989. I remember.', 'Mum, have you eaten? You\'re getting that look.',
+      chatter: ['Paul.', "I'm not getting involved.", 'Can we just have ONE nice Christmas?', 'Lisa, remember when you broke the greenhouse and blamed me? 1989. I remember.', 'Mum, have you eaten? You\'re getting that look.',
         'Has anyone seen my bag?', "Michael, give Lisa the remote. Michael. MICHAEL.", 'Jimmy, you were THIS big. Now look at you. Mind the light.', 'Sophie, are you eating properly in London? You look thin. You look lovely. Eat something.'],
       warn: ['Paul.', 'Paul. Enough.', 'PAUL.'],
       right: ['Oh! I knew that!', 'See, Paul? I do know things.'], wrong: ['I wasn\'t getting involved anyway.', "Don't blame me, I said I wasn't getting involved."],
@@ -73,12 +73,12 @@ export const FAMILY = {
     },
   },
   paul: {
-    name: 'Paul', role: "Karen's husband · Tommy and Charli's dad", team: 'karen', color: '#c0392b', voicePitch: 0.6, emoji: '🙋', heavy: true,
+    name: 'Paul', role: "Karen's husband · Tommy and Charli's dad", team: 'mason', color: '#c0392b', voicePitch: 0.6, emoji: '🙋', heavy: true,
     model: './assets/family/paul.glb', modelBody: { h: H.paul, fit: true, girth: 1.25, bind: bindFromMarks(H.paul, { sh: [0.14, 0.80], el: [0.31, 0.807], ha: [0.495, 0.81] }, { girth: 1.2, hipX: 0.062 }) },
-    blurb: "Argues every answer. Was right once in 2009 and hasn't let it go.",
+    blurb: "Argues about everything: the telly, the turkey, the rules of Monopoly. Was right once in 2009 and hasn't let it go.",
     banks: {
       greet: ["Merry Christmas, Joan! Where's the pigs in blankets? I'm joking. Where are they?", 'Michael! Michael. Has Lisa let you out?'],
-      chatter: ["That's what I put!", 'The question was badly worded.', "I'm not arguing, I'm explaining why I'm right.", 'Joan, you\'re marking us harder than Lisa\'s lot. I\'ve noticed.', 'Jimmy, how\'s the weather up there?',
+      chatter: ["That's what I said!", "The turkey's a bit dry. I'm just saying.", "I'm not arguing, I'm explaining why I'm right.", 'Joan, you gave the Cahalanes the bigger roasties. I\'ve noticed.', 'Jimmy, how\'s the weather up there?',
         'Michael, you used to deliver to this road! Did they ever tip you? No? I\'m not surprised.', 'Who\'s eaten all the pigs in blankets? Oh. Me.', "Sophie, London prices! Eight pound for a pint! I'd move back.", 'Tommy, put the phone away. What? I\'m looking at the football.'],
       argue: ["That's what I put!", 'Half a point for the spirit of the answer!', "I'm appealing that.", "It's the same thing!", 'Joan, that\'s a typo on YOUR sheet.'],
       right: ['YES! Write it down! Big letters!', 'Told you. TOLD you. Karen, tell them I told them.'], wrong: ["That's what I put. Basically.", "I'm appealing that."],
@@ -86,7 +86,7 @@ export const FAMILY = {
     },
   },
   lisa: {
-    name: 'Lisa', role: "Joan's daughter · Karen's sister · works at Asda", team: 'lisa', color: '#2f8a4a', voicePitch: 1.1, emoji: '🛒',
+    name: 'Lisa', role: "Joan's daughter · Karen's sister · works at Asda", team: 'cahalane', color: '#2f8a4a', voicePitch: 1.1, emoji: '🛒',
     model: './assets/family/lisa.glb', modelBody: { h: H.lisa, fit: true, bind: PROC_BINDS.lisa.bind },
     blurb: "Works at Asda. Looks after Michael, who annoys her. Karen's little sister (and don't she know it).",
     banks: {
@@ -100,7 +100,7 @@ export const FAMILY = {
     },
   },
   michael: {
-    name: 'Michael', role: "Lisa's husband · retired postman", team: 'lisa', color: '#d35400', voicePitch: 0.8, emoji: '✉️', heavy: true,
+    name: 'Michael', role: "Lisa's husband · retired postman", team: 'cahalane', color: '#d35400', voicePitch: 0.8, emoji: '✉️', heavy: true,
     model: './assets/family/michael.glb', modelBody: { h: H.michael, fit: true, girth: 1.15, bind: PROC_BINDS.michael.bind },
     blurb: "Lisa's husband. Used to be a postman and still can't walk past a letterbox. Winds Lisa up for sport.",
     banks: {
@@ -113,19 +113,19 @@ export const FAMILY = {
     },
   },
   sophie: {
-    name: 'Sophie', role: "Lisa and Michael's daughter · works in London", team: 'lisa', color: '#8e44ad', voicePitch: 1.3, emoji: '🍸',
+    name: 'Sophie', role: "Lisa and Michael's daughter · works in London", team: 'cahalane', color: '#8e44ad', voicePitch: 1.3, emoji: '🍸',
     model: './assets/family/sophie.glb', modelBody: { h: H.sophie, fit: true, girth: 0.92, bind: PROC_BINDS.sophie.bind },
     blurb: 'Works in London and goes out with the girls every weekend. Has a train to catch. Will miss it.',
     banks: {
       greet: ['Merry Christmas! I can only stay till six, I\'m seeing the girls. Okay, half six.', 'Nan! The girls say hi. Well, they don\'t know you. They\'d say hi.'],
-      chatter: ["The girls are in Shoreditch and I'm doing a quiz in my Nan's living room. Love it. Honestly.", 'Dad. Stop. Stop telling the postman story.', 'My train\'s at 6:42. Someone remind me at six. Nobody will.',
+      chatter: ["The girls are in Shoreditch and I'm pulling crackers in my Nan's living room. Love it. Honestly.", 'Dad. Stop. Stop telling the postman story.', 'My train\'s at 6:42. Someone remind me at six. Nobody will.',
         'Charli, send me that video. No, the OTHER one.', 'Tommy, we work in London and we\'ve never once met up. Iconic.', 'Jimmy, stop playing on your phone. Oh, it\'s a Switch. Same thing.', "In London, this would be forty quid a head.", 'Nan, your friends are the party. Maureen\'s doing shots.'],
       right: ['Easy. Pub quiz Tuesdays with the girls, babe.', 'YES. Put it in the group chat.'], wrong: ['That\'s a London thing, you wouldn\'t get it.', 'Dad said it.'],
       hit: ['My NAILS!', 'I literally just did my hair!'], slap: ['Mum! MUM!'], grabbed: ['Put me down, I\'ve got a train to catch!'], launched: ['I\'LL MISS MY TRAAAAIN—'],
     },
   },
   jimmy: {
-    name: 'Jimmy', role: "Lisa and Michael's son · works in a school", team: 'lisa', color: '#16a085', voicePitch: 0.75, emoji: '🎮',
+    name: 'Jimmy', role: "Lisa and Michael's son · works in a school", team: 'cahalane', color: '#16a085', voicePitch: 0.75, emoji: '🎮',
     model: './assets/family/jimmy.glb', modelBody: { h: H.jimmy, fit: true, girth: 0.95, bind: PROC_BINDS.jimmy.bind },
     blurb: 'Very tall. Lives on his PC. Works in a school, where all the kids think he is a legend.',
     banks: {
@@ -137,7 +137,7 @@ export const FAMILY = {
     },
   },
   joan: {
-    name: 'Joan', role: "Nan · Karen and Lisa's mum · the quizmaster", team: 'host', color: '#e6b422', voicePitch: 1.15, emoji: '👵',
+    name: 'Joan', role: "Nan · Joan Cook · Karen and Lisa's mum", team: 'cook', color: '#e6b422', voicePitch: 1.15, emoji: '👵',
     model: './assets/family/joan.glb', modelBody: { h: H.joan, fit: true, girth: 1.05, bind: PROC_BINDS.joan.bind },
     blurb: "Nan. Lives at Sandy Bay with half the over-60s of Essex as her mates. Loves chocolate. Gets HANGRY.",
     banks: {
@@ -147,12 +147,11 @@ export const FAMILY = {
         'Michael, you can sort the cards if you stop talking about the round.', 'Sophie, have you got a boyfriend? A girlfriend? A cat? Anything?', 'Tommy, what is it you DO in London? Marketing? Is that the shops?'],
       hangry: ['I am STARVING. Where is my DINNER?', 'Nobody talk to me until there are roast potatoes in front of me.', "Where's the chocolate. Someone get me the chocolate. NOW.", 'If one more person says "five more minutes" about that turkey...'],
       fed: ['Ooh, lovely. Now I\'m a nice Nan again.', 'Mmm. That\'s better. Who wants a cuddle?', 'Oh you are good to me.'],
-      quizStart: ["Right! Settle down! Nan's Christmas Quiz is starting!", "Quiet please! Paul, that means you."],
       right: ['Correct! Ooh, aren\'t you clever.', 'That\'s right, darling.', 'Yes! Point to them.'], wrong: ['No, darling. Bless you.', 'Wrong! Lovely try though.', "No. And Paul, don't start."],
       hit: ['OI! I\'m eighty-something!', 'Do that again and you\'re out of the will.'], slap: ['You\'re not too old for a clip round the ear!'], grabbed: ['Put your Nan DOWN!'], launched: ['MY CHOCOLAAAATES—'],
     },
   },
 };
 export const FAMILY_IDS = Object.keys(FAMILY);
-export const PLAYERS = FAMILY_IDS;       // anyone can be played (Joan too: then Karen reads the quiz)
+export const PLAYERS = FAMILY_IDS;       // anyone can be played, Nan too
 for (const id of FAMILY_IDS) FAMILY[id].h = H[id];

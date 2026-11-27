@@ -3,7 +3,7 @@
 A family Christmas party game for **Meta Quest 3** (WebXR) that also plays on **phones, tablets and computers**.
 It's Christmas Day. Everyone's round Nan's. Dinner's at two, and Nan gets hangry at 2:01.
 
-It's set up like *The Mason Family Boxing Day Quiz* and runs on *Ronnie Simulator*'s engine: the same ragdolls, walking
+It's set up like *The Mason Family Boxing Day Quiz* (the menus and flow, no quiz) and runs on *Ronnie Simulator*'s engine: the same ragdolls, walking
 and running, physics, hands, food and detailed levels.
 
 ## Play it
@@ -19,9 +19,9 @@ Local test: `python3 -m http.server 8000` in this folder, then open `http://loca
 
 1. **Title** → PLAY.
 2. **Who are you?** Any of the nine:
-   - **Team Karen**: Tommy, Charli, Karen, Paul
-   - **Team Lisa**: Lisa, Michael, Sophie, Jimmy
-   - **The Quizmaster**: Joan (Nan). Play as her and you read the questions while the teams answer.
+   - **The Masons**: Tommy, Charli, Karen, Paul
+   - **The Cahalanes**: Lisa, Michael, Sophie, Jimmy
+   - **The Cooks**: Joan (Nan)
 3. **Which house?**
    - **Nan's new house (Sandy Bay)**: her park home among the over-60s (and all her friends), with a lounge, kitchen-diner,
      conservatory, a little garden and the neighbours' lights.
@@ -33,11 +33,9 @@ Local test: `python3 -m http.server 8000` in this folder, then open `http://loca
 
 | Mode | What it is |
 |---|---|
-| 🎄 Nan's Christmas Quiz | Everyone into the lounge. Nan reads from her armchair and the questions come up on the TV. Four rounds: Christmas; Telly, Film & Music; General Knowledge; and the Family Round. Charli whispers the right answer (mostly), Paul insists on the wrong one and appeals every loss (sometimes Nan gives him half a point to shut him up), and Lisa says "Michael." a lot. If Nan gets too hungry she stops the quiz until someone brings her chocolate. Winners dance; then the results and awards. |
-| ⚡ Quick Quiz | Two short rounds: Christmas and the Family Round. |
 | 🍫 Feed Nan | Three minutes. Nan's Hangry-o-Meter keeps rising, faster as the afternoon goes on. She tells you what she wants (Quality Street, a mince pie, a Baileys...). Get it to her: hold it and tap her, throw it to her (she catches it), or hold it to her face in VR. |
 | 🚀 Fling the Family | Out in the garden. Everyone queues up; launch them down the lawn (tap when the power bar's high, or grab and throw in VR). Furthest fling wins. |
-| 🎁 Free Roam | No quiz, no timer. Eat everything, pull crackers (a BANG and a terrible joke), annoy Michael. |
+| 🎁 Free Roam | No timer. Eat everything, pull crackers (a BANG and a terrible joke), annoy Michael. |
 
 ## The family
 
@@ -51,7 +49,7 @@ Local test: `python3 -m http.server 8000` in this folder, then open `http://loca
 | ✉️ | **Michael** | Lisa's husband. Retired postman; still can't walk past a letterbox. |
 | 🍸 | **Sophie** | Lisa and Michael's daughter. Works in London, out with the girls every weekend. |
 | 🎮 | **Jimmy** | Lisa and Michael's son. Very tall. PC gamer. Works in a school where the kids think he's a legend. |
-| 👵 | **Joan (Nan)** | The quizmaster. Lives at Sandy Bay with half the over-60s of Essex as her mates. Loves chocolate. Gets HANGRY. |
+| 👵 | **Joan (Nan)** | Joan Cook. Lives at Sandy Bay with half the over-60s of Essex as her mates. Loves chocolate. Gets HANGRY. |
 
 Their lines, heights and models are in `js/xmas/family.js`. Change anything to make it truer (or ruder).
 
@@ -63,11 +61,6 @@ Their lines, heights and models are in `js/xmas/family.js`. Change anything to m
 | **Quest (hands)** | Pinch to grab, the rest as above. |
 | **Phone / tablet** | Joystick: walk. Drag: look. Tap food: pick it up. EAT / PULL / DRINK, THROW. Tap a person: nudge them (in Feed Nan, with food in your hand: give it to Nan; in Fling: launch them). Quiz: tap an answer card. |
 | **Computer** | WASD / arrows, drag to look, click to pick up, E to eat, F or Space to throw. |
-
-## Edit the quiz
-
-`js/xmas/questions.js`: one question per line, `[question, right answer, wrong, wrong, wrong, optional quip]`. A quip is
-`"Name: what they say"` and that person says it after the answer is revealed.
 
 ## The 3D models
 
@@ -83,7 +76,7 @@ so elbows, knees and shoulders bend cleanly. Upload them to `assets/incoming/` w
 
 ```
 index.html            the page: menus, HUD, touch controls (styles)
-js/xmas/              this game: menu, main loop, family, quiz, questions, Feed Nan + Fling, HUD, Christmas food
+js/xmas/              this game: menu, main loop, family, Feed Nan + Fling, HUD, Christmas food, carols
 js/levels/            the houses (sandybay.js, tewkes.js) and the level kit
 js/*.js               Ronnie Simulator's engine (only the parts this game uses): ragdolls, gait, characters, player, hands, food, physics, audio, quality
 assets/family/        the family's 3D models;  assets/hands/: hand models (WebXR Input Profiles, MIT)

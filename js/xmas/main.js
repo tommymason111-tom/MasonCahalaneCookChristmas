@@ -18,7 +18,6 @@ import { buildSandyBay } from '../levels/sandybay.js';
 import { buildTewkesRoad } from '../levels/tewkes.js';
 import { FAMILY, FAMILY_IDS, TEAMS, HOST } from './family.js';
 import { addChristmasFood, XMAS_SPREAD, SWEETS } from './xfood.js';
-import { Quiz } from './quiz.js';
 import { Hangry, Fling } from './games.js';
 import { Hud } from './hud.js';
 import { Carols } from './carols.js';
@@ -28,7 +27,7 @@ addChristmasFood();
 for (const id of FAMILY_IDS) { const f = FAMILY[id]; SQUAD[id] = { ...f, look: { skin: 0xf1c3a5, top: 0xaa2222, bottom: 0x222233 }, body: { h: f.h }, title: '', fail: '' }; }
 
 const SEL = await window.xmasMenu;      // { me, place, mode }
-if (SEL.me === 'joan' && SEL.mode === 'hangry') SEL.mode = 'quiz';      // (Nan can't feed herself. Well, she can. That's the problem.)
+if (SEL.me === 'joan' && SEL.mode === 'hangry') SEL.mode = 'roam';      // (Nan can't feed herself. Well, she can. That's the problem.)
 const ME = SEL.me;
 const MODEL_LOAD = preloadModels(FAMILY_IDS.filter(id => id !== ME).map(id => FAMILY[id].model));
 window.__ls && window.__ls('family');
@@ -121,8 +120,7 @@ const game = { scene, camera, renderer, room, player, items, cast, who, words, c
   say: (id, bank, pri) => { const c = who(id); return c ? c.say(bank, pri) : false; },
   over: (title, lines) => gameOver(title, lines) };
 let mode = null;
-if (SEL.mode === 'quiz' || SEL.mode === 'quick') mode = new Quiz(game, { quick: SEL.mode === 'quick' });
-else if (SEL.mode === 'hangry') mode = new Hangry(game);
+if (SEL.mode === 'hangry') mode = new Hangry(game);
 else if (SEL.mode === 'fling') mode = new Fling(game);
 hud.setMode(SEL.mode);
 window.XM = { THREE, game, mode, cast, player, room, scene, renderer, camera, items, sim: (dt) => frame(dt) };
