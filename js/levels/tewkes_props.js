@@ -28,9 +28,9 @@ export class Quads {
 export const BULBS = [0xff3030, 0x30ff50, 0x3080ff, 0xffd030, 0xff40ff, 0xffffff];
 export class FairyLights {
   constructor(k) { this.k = k; this.list = []; }
-  add(x, y, z, color, size = 0.018, halo = true) { this.list.push([x, y, z, color, size]); if (halo) this.k.halo(x, y, z, size * 7, color); }
+  add(x, y, z, color, size = 0.013, halo = true) { this.list.push([x, y, z, color, size]); if (halo) this.k.halo(x, y, z, size * 7, color); }
   // a string of bulbs along a sagging curve from a to b (sag metres at the middle); colors cycle (or one colour)
-  string(a, b, n, { sag = 0.05, colors = BULBS, size = 0.018, halo = true, off = 0 } = {}) {
+  string(a, b, n, { sag = 0.05, colors = BULBS, size = 0.013, halo = true, off = 0 } = {}) {
     for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, s = sag * 4 * t * (1 - t);
       this.add(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - s, a[2] + (b[2] - a[2]) * t, colors[(i + off) % colors.length], size, halo && i % 2 === 0); }
   }
@@ -74,40 +74,43 @@ export function christmasTree(k, fl, x, z, { h = 2.15, r = 0.72, base = 0.32 } =
   k.cyl(0.03, 0.045, h * 0.6, x, base + h * 0.3, z, 0x5a3a22, 8);
   k.blockers.push({ x0: x - r * 0.8, x1: x + r * 0.8, z0: z - r * 0.8, z1: z + r * 0.8, y1: h + base });
   const top = base + h, y0 = base + 0.18;
-  // branches: whorls up the trunk, each branch a drooping stick with needle clumps along it
-  const tiers = 9;
+  // branches: whorls up the trunk, each a drooping stick covered in needle sprays that point out along it, with
+  // little side sprigs, in mixed dark and blue-greens (lighter at the tips: this year's growth)
+  const tiers = 11;
   for (let t = 0; t < tiers; t++) {
-    const f = t / (tiers - 1), y = y0 + (top - 0.25 - y0) * f, R = r * (1 - f * 0.88) + 0.05, n = Math.max(5, Math.round(12 - f * 6));
+    const f = t / (tiers - 1), y = y0 + (top - 0.22 - y0) * f, R = r * (1 - f * 0.9) + 0.05, n = Math.max(5, Math.round(11 - f * 5));
     for (let i = 0; i < n; i++) {
-      const a = i / n * Math.PI * 2 + t * 0.7 + rnd() * 0.3, len = R * (0.85 + rnd() * 0.25);
-      const p0 = new THREE.Vector3(x, y, z), p1 = new THREE.Vector3(x + Math.cos(a) * len, y - len * 0.22, z + Math.sin(a) * len);
-      stick(k, p0, p1, 0.012, 0.005, 0x4a3018, 4);
-      const clumps = Math.max(2, Math.round(len / 0.11));
-      for (let c = 1; c <= clumps; c++) { const u = c / clumps, p = p0.clone().lerp(p1, u); p.y += 0.02;
-        const g = new THREE.IcosahedronGeometry(1, 0), s = 0.07 + (1 - u) * 0.05 + R * 0.06; g.scale(s * 1.5, s * 0.55, s * 1.5); g.rotateY(a + rnd()); g.rotateZ((rnd() - 0.5) * 0.6);
-        k.parts.push(part(g, shade(GREENS[Math.floor(rnd() * GREENS.length)], 0.85 + rnd() * 0.35), [p.x, p.y, p.z])); }
+      const a = i / n * Math.PI * 2 + t * 0.9 + rnd() * 0.3, len = R * (0.85 + rnd() * 0.25), droop = 0.18 + rnd() * 0.12;
+      const p0 = new THREE.Vector3(x, y, z), p1 = new THREE.Vector3(x + Math.cos(a) * len, y - len * droop, z + Math.sin(a) * len);
+      const steps = Math.max(2, Math.round(len / 0.075));
+      for (let c = 1; c <= steps; c++) { const u = c / steps, p = p0.clone().lerp(p1, u), tip = u > 0.8;
+        const g = new THREE.IcosahedronGeometry(1, 0), L2 = 0.07 + (1 - u) * 0.03; g.scale(L2, 0.022, 0.05 + (1 - u) * 0.03);
+        g.rotateZ(-droop * 1.2); g.rotateY(-a + (rnd() - 0.5) * 0.5);
+        k.parts.push(part(g, shade(tip ? GREENS[4] : GREENS[Math.floor(rnd() * GREENS.length)], 0.8 + rnd() * 0.35), [p.x, p.y + 0.01, p.z]));
+        if (c % 2 === 0) for (const sd of [-1, 1]) { const sa = a + sd * 0.9, q = new THREE.Vector3(p.x + Math.cos(sa) * 0.05, p.y - 0.01, p.z + Math.sin(sa) * 0.05);
+          const g2 = new THREE.IcosahedronGeometry(1, 0); g2.scale(0.055, 0.018, 0.035); g2.rotateY(-sa); k.parts.push(part(g2, shade(GREENS[Math.floor(rnd() * GREENS.length)], 0.8 + rnd() * 0.3), [q.x, q.y, q.z])); } }
     }
     // a fuzzy core of needles between the tiers, so you can't see through to the trunk
-    const g = new THREE.ConeGeometry(R * 0.72, (top - y0) / tiers * 1.6, 9, 1, true); k.parts.push(part(g, GREENS[t % GREENS.length], [x, y + 0.02, z]));
+    const g = new THREE.ConeGeometry(R * 0.7, (top - y0) / tiers * 1.7, 9, 1, true); k.parts.push(part(g, GREENS[t % GREENS.length], [x, y + 0.03, z]));
   }
   { const g = new THREE.ConeGeometry(0.12, 0.34, 7); k.parts.push(part(g, GREENS[2], [x, top - 0.12, z])); }
   // the star
   { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, rr = i % 2 ? 0.045 : 0.11; sh[i ? 'lineTo' : 'moveTo'](Math.sin(a) * rr, Math.cos(a) * rr); }
     const g = new THREE.ExtrudeGeometry(sh, { depth: 0.025, bevelEnabled: false }); g.translate(0, 0, -0.0125); k.parts.push(part(g, 0xffd84a, [x, top + 0.1, z], [0, 0.6, 0]));
-    k.lamp(x, top + 0.1, z, 0xfff0a0, 0.03); k.halo(x, top + 0.1, z, 0.5, 0xffe080); }
+    k.lamp(x, top + 0.1, z, 0xffe6b8, 0.03); k.halo(x, top + 0.1, z, 0.5, 0xffe080); }
   // where a point on the tree's skin is (height y, angle a), pushed out a bit
   const skin = (y, a, out = 0.02) => { const f = (y - y0) / (top - 0.25 - y0), R = Math.max(0.08, r * (1 - f * 0.88) + 0.05) * 0.95 + out; return new THREE.Vector3(x + Math.cos(a) * R, y - R * 0.12, z + Math.sin(a) * R); };
   // baubles: old-fashioned glass ones in red, gold, blue, silver, a few long drops
   const BAUB = [0xc62828, 0xd4af37, 0x1e4aa8, 0xc0c0c8, 0x8a1a5a, 0x2e7d32];
-  for (let i = 0; i < 46; i++) { const y = y0 + 0.05 + rnd() * (top - y0 - 0.35), a = rnd() * Math.PI * 2, p = skin(y, a, 0.0); const rr = 0.028 + rnd() * 0.018;
+  for (let i = 0; i < 46; i++) { const y = y0 + 0.05 + rnd() * (top - y0 - 0.35), a = rnd() * Math.PI * 2, p = skin(y, a, 0.0); const rr = 0.034 + rnd() * 0.02;
     if (i % 9 === 0) { const g = new THREE.ConeGeometry(rr * 0.8, rr * 4, 8); g.rotateX(Math.PI); k.parts.push(part(g, BAUB[i % BAUB.length], [p.x, p.y - rr * 2, p.z])); }
     else k.parts.push(part(new THREE.SphereGeometry(rr, 8, 6), BAUB[i % BAUB.length], [p.x, p.y - rr, p.z]));
     k.parts.push(part(new THREE.CylinderGeometry(0.007, 0.007, 0.012, 6), 0xd4af37, [p.x, p.y + 0.004, p.z])); }
-  // tinsel: three loose spirals (gold, silver, red), each a run of short twisted strips
+  // tinsel: three loose spirals (gold, silver, red), fluffy
   for (const [col, ph] of [[0xe8c040, 0], [0xd8dce4, 2.1], [0xc62828, 4.2]]) {
-    let prev = null; const N = 70;
+    let prev = null; const N = 40;
     for (let i = 0; i <= N; i++) { const u = i / N, y = y0 + 0.08 + u * (top - y0 - 0.45), a = ph + u * Math.PI * 2 * 3.2, p = skin(y, a, 0.035);
-      if (prev) { const d = p.clone().sub(prev); linkBox(k, prev.clone().add(p).multiplyScalar(0.5), d, d.length() + 0.01, 0.045, 0.012, shade(col, 0.85 + (i % 3) * 0.12), i * 0.9); }
+      if (prev) tinsel(k, prev.toArray(), p.toArray(), col, { sag: 0.01, r: 0.035 });
       prev = p; }
   }
   // fairy lights: one long string spiralling up, multicoloured
@@ -121,6 +124,14 @@ export function present(k, x, z, w, h, d, col, ribbon, ry = 0) {
   const c = Math.cos(ry), s = Math.sin(ry), P = (bw, bh, bd, lx, y, lz, cl) => k.box(bw, bh, bd, x + lx * c + lz * s, y, z - lx * s + lz * c, cl, { rot: ry ? [0, ry, 0] : null });
   P(w, h, d, 0, h / 2, 0, col); P(w + 0.004, h + 0.004, 0.025, 0, h / 2, 0, ribbon); P(0.025, h + 0.004, d + 0.004, 0, h / 2, 0, ribbon);
   for (const a of [-0.6, 0.6]) k.box(0.05, 0.025, 0.02, x, h + 0.012, z, ribbon, { rot: [0, ry + a, 0.4] });
+}
+
+// tinsel: a fluffy rope of short glittery strips at every angle, along a (sagging) line
+export function tinsel(k, a, b, col, { sag = 0.05, r = 0.03 } = {}) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), n = Math.round(A.distanceTo(B) / 0.018);
+  for (let i = 0; i <= n; i++) { const t = i / n, p = new THREE.Vector3().lerpVectors(A, B, t); p.y -= sag * 4 * t * (1 - t);
+    const g = new THREE.BoxGeometry(0.006, r * (0.8 + rnd() * 0.6), 0.012); g.rotateX(rnd() * 6.28); g.rotateZ(rnd() * 6.28); g.rotateY(rnd() * 6.28);
+    k.parts.push(part(g, shade(col, 0.75 + rnd() * 0.5), [p.x, p.y, p.z])); }
 }
 
 // a paper chain hung between two points: links of alternating colours, each turned 90° to the last
@@ -138,25 +149,30 @@ export function paperChain(k, a, b, { sag = 0.35, cols = [0xd32f2f, 0x2e7d32, 0x
     k.parts.push(part(g1, col, [mid.x, mid.y, mid.z])); k.parts.push(part(g2, col, [mid.x, mid.y, mid.z])); }
 }
 
-// ---- a parked car (a hatchback or a saloon), frost on the windscreen, number plates
+// ---- a parked car (a hatchback or a saloon): rounded body, a glasshouse with pillars, frost on the roof and
+// windscreen, wheels with hubcaps, lights and number plates. Its length runs along its local z; ry turns it.
 export function car(k, x, z, ry, col, { kind = 'hatch', frost = true } = {}) {
   const c = Math.cos(ry), s = Math.sin(ry);
-  const P = (g, cl, lx, y, lz, rot = [0, 0, 0]) => k.parts.push(part(g, cl, [x + lx * c + lz * s, y, z - lx * s + lz * c], [rot[0], ry + rot[1], rot[2]]));
-  const B = (w, h, d, lx, y, lz, cl, rot) => P(new THREE.BoxGeometry(w, h, d), cl, lx, y, lz, rot);
-  const L = kind === 'hatch' ? 3.9 : 4.6, W = 1.75, GL = 0x2a3440, FR = 0xe8eef4;
-  B(W, 0.55, L, 0, 0.55, 0, col); B(W - 0.04, 0.16, L - 0.1, 0, 0.3, 0, 0x1a1a1a);          // body, sills
-  const cabL = kind === 'hatch' ? 2.0 : 2.1, cabZ = kind === 'hatch' ? 0.35 : 0.1;
-  B(W - 0.14, 0.5, cabL, 0, 1.06, cabZ, col);                                                   // cabin
-  B(W - 0.1, 0.42, 0.04, 0, 1.04, cabZ - cabL / 2 - 0.12, frost ? FR : GL, [-0.6, 0, 0]);       // windscreen (frosted over)
-  B(W - 0.1, 0.4, 0.04, 0, 1.04, cabZ + cabL / 2 + 0.06, frost ? 0xd8e0e8 : GL, [kind === 'hatch' ? 0.3 : 0.6, 0, 0]);
-  for (const sx of [-1, 1]) B(0.02, 0.36, cabL - 0.2, sx * (W / 2 - 0.06), 1.08, cabZ, GL);    // side windows
-  B(W - 0.12, 0.02, cabL, 0, 1.32, cabZ, frost ? 0xe8eef4 : col);                               // frosty roof
-  for (const lz of [-L / 2 + 0.7, L / 2 - 0.7]) for (const sx of [-1, 1]) { const g = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 14); g.rotateZ(Math.PI / 2); P(g, 0x151515, sx * (W / 2 - 0.08), 0.32, lz); const h = new THREE.CylinderGeometry(0.18, 0.18, 0.23, 10); h.rotateZ(Math.PI / 2); P(h, 0x9a9aa0, sx * (W / 2 - 0.08), 0.32, lz); }
-  for (const sx of [-1, 1]) { B(0.32, 0.12, 0.03, sx * 0.6, 0.7, -L / 2 - 0.005, 0xfff6d8); B(0.32, 0.12, 0.03, sx * 0.6, 0.7, L / 2 + 0.005, 0xc62828); B(0.06, 0.06, 0.18, sx * (W / 2 + 0.03), 0.95, cabZ - cabL / 2 + 0.1, col); }
-  B(0.52, 0.12, 0.02, 0, 0.5, -L / 2 - 0.01, 0xf4f4f0); B(0.52, 0.12, 0.02, 0, 0.5, L / 2 + 0.01, 0xf7d117);   // plates
+  const P = (g, cl, lx, y, lz, rx = 0, rz = 0) => { g.rotateZ(rz); g.rotateX(rx); g.rotateY(ry); k.parts.push(part(g, cl, [x + lx * c + lz * s, y, z - lx * s + lz * c])); };
+  const taper = (w, h, d, tw, td, shift = 0) => { const g = new THREE.BoxGeometry(w, h, d, 1, 1, 1), p = g.attributes.position; for (let i = 0; i < p.count; i++) if (p.getY(i) > 0) { p.setX(i, p.getX(i) * tw); p.setZ(i, p.getZ(i) * td + shift); } g.computeVertexNormals(); return g; };
+  const L = kind === 'hatch' ? 3.95 : 4.6, W = 1.74, GL = 0x26303a, FR = 0xdfe8f0, dark = shade(col, 0.75);
+  P(taper(W, 0.42, L, 0.98, 0.97), col, 0, 0.52, 0);                                                   // the body
+  P(taper(W + 0.02, 0.16, L + 0.04, 1, 1), 0x1a1a1a, 0, 0.29, 0);                                       // bumpers and sills
+  P(taper(W - 0.02, 0.12, L - 0.3, 0.96, kind === 'hatch' ? 0.9 : 0.75, kind === 'hatch' ? 0.1 : 0), col, 0, 0.79, kind === 'hatch' ? 0.05 : 0);   // the bonnet/boot line
+  const cabL = kind === 'hatch' ? 2.3 : 2.3, cabZ = kind === 'hatch' ? 0.35 : 0.15;
+  P(taper(W - 0.12, 0.48, cabL, 0.86, kind === 'hatch' ? 0.62 : 0.55, kind === 'hatch' ? 0.25 : 0.05), GL, 0, 1.09, cabZ);   // the glasshouse
+  { const g = taper(W - 0.1, 0.05, cabL * (kind === 'hatch' ? 0.62 : 0.55) + 0.04, 0.98, 0.98); P(g, frost ? FR : col, 0, 1.345, cabZ + (kind === 'hatch' ? 0.25 : 0.05)); }   // the roof (frosty)
+  for (const sx of [-1, 1]) for (const lz of [-0.55, 0.15, 0.75]) P(new THREE.BoxGeometry(0.04, 0.46, 0.06), dark, sx * (W / 2 - 0.12), 1.09, cabZ + lz * (cabL / 2.3) * 0.75);   // pillars
+  if (frost) P(new THREE.BoxGeometry(W - 0.3, 0.01, 0.5), FR, 0, 1.11, cabZ - cabL / 2 + 0.38, -0.95);                  // the frosted windscreen
+  for (const lz of [-L / 2 + 0.75, L / 2 - 0.75]) for (const sx of [-1, 1]) { P(new THREE.CylinderGeometry(0.31, 0.31, 0.2, 16), 0x151515, sx * (W / 2 - 0.1), 0.31, lz, 0, Math.PI / 2); P(new THREE.CylinderGeometry(0.17, 0.17, 0.21, 10), 0xa8acb0, sx * (W / 2 - 0.1), 0.31, lz, 0, Math.PI / 2);
+    P(new THREE.BoxGeometry(0.06, 0.12, 0.8), shade(col, 0.6), sx * (W / 2 - 0.01), 0.62, lz); }                  // wheels, arches
+  for (const sx of [-1, 1]) { P(new THREE.BoxGeometry(0.34, 0.1, 0.04), 0xfff6d8, sx * 0.6, 0.62, -L / 2 + 0.01); P(new THREE.BoxGeometry(0.34, 0.1, 0.04), 0xc62828, sx * 0.6, 0.64, L / 2 - 0.01); P(new THREE.BoxGeometry(0.06, 0.05, 0.14), dark, sx * (W / 2 - 0.02), 0.95, cabZ - cabL / 2 + 0.25); }
+  P(new THREE.BoxGeometry(0.52, 0.11, 0.02), 0xf4f4f0, 0, 0.42, -L / 2 - 0.02); P(new THREE.BoxGeometry(0.52, 0.11, 0.02), 0xf7d117, 0, 0.45, L / 2 + 0.02);   // plates
+  P(new THREE.BoxGeometry(0.02, 0.03, 1.2), dark, W / 2 - 0.0, 0.7, 0.1); P(new THREE.BoxGeometry(0.02, 0.03, 1.2), dark, -W / 2 + 0.0, 0.7, 0.1);   // door lines
   const hx = Math.abs(c) * W / 2 + Math.abs(s) * L / 2, hz = Math.abs(s) * W / 2 + Math.abs(c) * L / 2;
   k.blockers.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz, y1: 1.35 });
   k.colliders.push({ min: new THREE.Vector3(x - hx * 0.9, 0, z - hz * 0.9), max: new THREE.Vector3(x + hx * 0.9, 0.85, z + hz * 0.9) });
+  return { L, W, cabZ, cabL };
 }
 
 // a street lamp: a grey column, a swan-neck arm, a lantern (on: it's getting dark by four)
@@ -166,7 +182,7 @@ export function lampPost(k, x, z, ry) {
   const ax = x + s * 0.7, az = z + c * 0.7;
   stick(k, new THREE.Vector3(x, 5.1, z), new THREE.Vector3(ax, 5.35, az), 0.04, 0.035, 0x7a7e82, 6);
   k.box(0.45, 0.1, 0.25, ax, 5.3, az, 0x5a5e62, { rot: [0, ry, 0] }); k.box(0.38, 0.05, 0.2, ax, 5.23, az, 0xfff2c8, { rot: [0, ry, 0] });
-  k.lamp(ax, 5.2, az, 0xffe2a0, 0.06); k.pool(ax, 0.01, az, 2.6, 0xffc070);
+  k.lamp(ax, 5.2, az, 0xffe6b8, 0.06); k.pool(ax, 0.01, az, 2.6, 0xffc070);
 }
 
 // a garden gnome: hat, beard, a fishing rod or a lantern
