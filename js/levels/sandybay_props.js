@@ -11,13 +11,18 @@ export function rng(seed) { let s = seed; return () => (s = (s * 16807) % 214748
 
 // ---------------------------------------------------------------- lights
 // a bulb: a tiny 20-triangle ball, instanced (one draw per colour for the whole level), with a soft halo
-const BULB = new THREE.IcosahedronGeometry(1, 0);
+const BULB = new THREE.OctahedronGeometry(1, 0);
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
 export function bulb(k, x, y, z, color, r = 0.022, halo = 0.1) {
-  k._bulbMats = k._bulbMats || new Map();
-  if (!k._bulbMats.has(color)) k._bulbMats.set(color, new THREE.MeshBasicMaterial({ color }));
-  k.instance(BULB, k._bulbMats.get(color), _m4.compose(_v.set(x, y, z), _q.identity(), _s.setScalar(r)));
+  (k._bulbs = k._bulbs || []).push([x, y, z, r, color]);
   if (halo) k.halo(x, y, z, halo, color);
+}
+// every bulb in the level: ONE instanced draw (each its own colour)
+export function buildBulbs(k, scene) {
+  const L = k._bulbs || []; if (!L.length) return null;
+  const im = new THREE.InstancedMesh(BULB, new THREE.MeshBasicMaterial({ color: 0xffffff }), L.length), c = new THREE.Color();
+  L.forEach(([x, y, z, r, col], i) => { im.setMatrixAt(i, _m4.compose(_v.set(x, y, z), _q.identity(), _s.setScalar(r))); im.setColorAt(i, c.set(col)); });
+  im.instanceMatrix.needsUpdate = true; im.instanceColor.needsUpdate = true; im.computeBoundingSphere(); im.renderOrder = 2; scene.add(im); return im;
 }
 export const MULTI = [0xff3b3b, 0x3bff6a, 0x3b8bff, 0xffd23b, 0xff5bd8];
 export const WARM = [0xffd890];
@@ -91,9 +96,10 @@ export function faceWin(k, axis, c, a, y, w, h, dir, { frame = 0xf6f6f2, glass =
 // ---------------------------------------------------------------- a whole park home (outside only)
 // x0..x1 along the row, z0..z1 deep; front = +1 (door/windows on z1) or -1 (on z0)
 export function parkHome(k, roofs, cladTex, o) {
-  const { x0, x1, z0, z1, front = 1, eave = 2.55, rise = 1.25, trim = 0xf4f4ee, skirt = 0x8a8a84, door = 0x2a4a6a, doorX = null, curtain = 0xb04040, lights = MULTI, lit = 0, rnd = Math.random, gableCol = 0xeee6d2 } = o;
+  const { x0, x1, z0, z1, front = 1, eave = 2.55, rise = 1.25, trim = 0xf4f4ee, skirt = 0x8a8a84, door = 0x2a4a6a, doorX = null, curtain = 0xb04040, lights = MULTI, lit = 0, rnd = Math.random, gableCol = 0xeee6d2, plain = null } = o;
   const W = x1 - x0, D = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, fz = front > 0 ? z1 : z0;
-  k.texBox(W, eave - 0.45, D, cx, 0.45 + (eave - 0.45) / 2, cz, cladTex, { tile: 1.6, collide: true, block: true });
+  if (plain != null) { k.box(W, eave - 0.45, D, cx, 0.45 + (eave - 0.45) / 2, cz, plain, { block: true }); for (let y = 0.6; y < eave; y += 0.2) for (const z of [z0 - 0.004, z1 + 0.004]) k.box(W, 0.012, 0.01, cx, y, z, shade(plain, 0.85)); }
+  else k.texBox(W, eave - 0.45, D, cx, 0.45 + (eave - 0.45) / 2, cz, cladTex, { tile: 1.6, collide: true, block: true });
   k.box(W + 0.04, 0.45, D + 0.04, cx, 0.225, cz, skirt, { block: true });                         // the skirting round the chassis
   for (let x = x0 + 0.3; x < x1; x += 0.6) k.box(0.02, 0.4, 0.012, x, 0.22, fz + front * 0.026, shade(skirt, 0.8));   // skirt panel joints
   for (const x of [x0, x1]) { k.box(0.08, eave, 0.08, x, eave / 2, z0, trim); k.box(0.08, eave, 0.08, x, eave / 2, z1, trim); }   // corner trims
@@ -194,12 +200,12 @@ export function solarLight(k, x, z) { k.cyl(0.012, 0.012, 0.3, x, 0.15, z, 0x2a2
 export function reindeer(k, x, z, ry = 0, s = 1, y0 = 0) {
   const c = Math.cos(ry), sn = Math.sin(ry), W = (lx, y, lz) => [x + (lx * c + lz * sn) * s, y0 + y * s, z + (-lx * sn + lz * c) * s];
   const seg = (a, b, col = 0xf4f4f0, r = 0.012) => { const A = W(...a), B = W(...b), d = new THREE.Vector3(B[0] - A[0], B[1] - A[1], B[2] - A[2]); const L = d.length(); const g = new THREE.CylinderGeometry(r, r, L, 4); g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize())); g.translate((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2); k.parts.push(part(g, col)); };
-  const outline = [[-0.38, 0.62, 0], [-0.2, 0.72, 0], [0.2, 0.72, 0], [0.42, 0.85, 0], [0.55, 1.08, 0], [0.7, 1.12, 0], [0.74, 1.02, 0], [0.5, 0.82, 0], [0.38, 0.55, 0], [0, 0.5, 0], [-0.38, 0.62, 0]];
+  const outline = [[-0.4, 0.62, 0], [-0.2, 0.72, 0], [0.22, 0.72, 0], [0.38, 0.8, 0], [0.48, 0.95, 0], [0.64, 0.97, 0], [0.7, 0.88, 0], [0.48, 0.8, 0], [0.38, 0.55, 0], [0, 0.5, 0], [-0.4, 0.62, 0]];
   for (const dz of [-0.09, 0.09]) for (let i = 0; i < outline.length - 1; i++) { const a = outline[i].slice(), b = outline[i + 1].slice(); a[2] = b[2] = dz; seg(a, b); }
   for (const [lx, dz] of [[-0.3, -0.09], [-0.3, 0.09], [0.32, -0.09], [0.32, 0.09]]) seg([lx, 0.56, dz], [lx + 0.02, 0, dz]);   // legs
-  for (const dz of [-0.05, 0.05]) { seg([0.6, 1.1, dz], [0.52, 1.36, dz * 3]); seg([0.55, 1.25, dz * 2], [0.68, 1.33, dz * 3]); seg([0.53, 1.3, dz * 2.5], [0.42, 1.4, dz * 3.5]); }   // antlers
+  for (const dz of [-0.05, 0.05]) { seg([0.52, 0.97, dz], [0.44, 1.22, dz * 3]); seg([0.47, 1.1, dz * 2], [0.6, 1.18, dz * 3]); seg([0.45, 1.16, dz * 2.5], [0.34, 1.26, dz * 3.5]); }   // antlers
   for (const dz of [-0.09, 0.09]) for (let i = 0; i < outline.length - 1; i++) { const a = outline[i], b = outline[i + 1]; for (let t = 0; t < 1; t += 0.34) { const p = W(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, dz); bulb(k, p[0], p[1], p[2], 0xfff0c8, 0.018, 0.12); } }
-  { const p = W(0.76, 1.04, 0); bulb(k, p[0], p[1], p[2], 0xff2020, 0.035, 0.25); }               // a red nose
+  { const p = W(0.72, 0.9, 0); bulb(k, p[0], p[1], p[2], 0xff2020, 0.035, 0.25); }               // a red nose
   if (!y0) k.blockers.push({ x0: x - 0.6 * s, x1: x + 0.6 * s, z0: z - 0.6 * s, z1: z + 0.6 * s, y1: 1.2 });
 }
 export function birdTable(k, x, z) {
@@ -280,8 +286,8 @@ export function cladTex(base = '#efe8d4') {
 }
 export function winterRoofTex() {
   return canvasTex(256, 256, (g, w, h) => {
-    g.fillStyle = '#4a4440'; g.fillRect(0, 0, w, h);
-    for (let y = 0; y < h; y += 22) for (let x = -((y / 22) % 2) * 20; x < w; x += 40) { const v = Math.random() * 16 - 8; g.fillStyle = `rgb(${92 + v},${84 + v},${80 + v})`; g.fillRect(x + 1, y + 1, 38, 19); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x + 1, y + 17, 38, 3); }
+    g.fillStyle = '#5a5450'; g.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 22) for (let x = -((y / 22) % 2) * 20; x < w; x += 40) { const v = Math.random() * 16 - 8; g.fillStyle = `rgb(${116 + v},${106 + v},${100 + v})`; g.fillRect(x + 1, y + 1, 38, 19); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x + 1, y + 17, 38, 3); }
     for (let i = 0; i < 1600; i++) { g.fillStyle = `rgba(235,242,250,${0.25 + Math.random() * 0.35})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 1.5); }   // frost
   });
 }
@@ -289,8 +295,7 @@ export function frostGrassTex() {
   return canvasTex(256, 256, (g, w, h) => {
     g.fillStyle = '#6f8a5a'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 3400; i++) { g.fillStyle = ['#5e7a48', '#7a9564', '#6a8452', '#86a070', '#9aae8a'][i % 5]; g.fillRect(Math.random() * w, Math.random() * h, 1.5, 3 + Math.random() * 3); }
-    for (let i = 0; i < 2600; i++) { g.fillStyle = `rgba(232,240,248,${0.35 + Math.random() * 0.4})`; g.fillRect(Math.random() * w, Math.random() * h, 1.2, 1.2 + Math.random() * 2); }   // the frost on the blades
-    for (let i = 0; i < 5; i++) { const x = Math.random() * w, y = Math.random() * h, r = 20 + Math.random() * 40, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(225,235,245,0.4)'); gr.addColorStop(1, 'rgba(225,235,245,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+    for (let i = 0; i < 2200; i++) { g.fillStyle = `rgba(232,240,248,${0.18 + Math.random() * 0.3})`; g.fillRect(Math.random() * w, Math.random() * h, 1, 1 + Math.random() * 2); }   // the frost on the blades
   });
 }
 export function deckTex() {
@@ -316,13 +321,13 @@ export function swirlCarpetTex(base = '#7a3a44', a = '#8a4a52', b = '#c8a060') {
   return canvasTex(256, 256, (g, w, h) => {
     g.fillStyle = base; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 2400; i++) { g.fillStyle = Math.random() < 0.5 ? a : 'rgba(0,0,0,0.14)'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
-    g.strokeStyle = b; g.lineWidth = 2.5;
+    g.strokeStyle = b; g.lineWidth = 1.6;
     for (let y = 0; y < h; y += 64) for (let x = 0; x < w; x += 64) { const ox = x + ((y / 64) % 2) * 32; g.beginPath(); g.arc(ox + 32, y + 32, 16, 0.3, 4.5); g.stroke(); g.beginPath(); g.arc(ox + 32, y + 32, 7, 2, 6.5); g.stroke(); g.beginPath(); g.moveTo(ox + 6, y + 6); g.quadraticCurveTo(ox + 20, y + 22, ox + 8, y + 40); g.stroke(); }
   });
 }
 export function linoTex() {
   return canvasTex(256, 256, (g, w, h) => {
-    for (let y = 0; y < h; y += 32) for (let x = 0; x < w; x += 32) { g.fillStyle = ((x + y) / 32) % 2 ? '#e8e0cc' : '#9a6a4a'; g.fillRect(x, y, 32, 32); }
+    for (let y = 0; y < h; y += 32) for (let x = 0; x < w; x += 32) { g.fillStyle = ((x + y) / 32) % 2 ? '#ece6d6' : '#c4a68a'; g.fillRect(x, y, 32, 32); }
     for (let i = 0; i < 1500; i++) { g.fillStyle = 'rgba(0,0,0,0.05)'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
     g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(0, 0, w, h);
   });
@@ -371,7 +376,7 @@ export function hangryTex() {
     g.fillStyle = '#fbf6e8'; g.beginPath(); g.arc(cx, cy, 70, 0, 7); g.fill();
     g.strokeStyle = '#111'; g.lineWidth = 12; g.lineCap = 'round'; const na = Math.PI + Math.PI * 0.88; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(na) * (R - 20), cy + Math.sin(na) * (R - 20)); g.stroke();
     g.fillStyle = '#111'; g.beginPath(); g.arc(cx, cy, 16, 0, 7); g.fill();
-    g.font = `900 46px ${FONT}`; g.textAlign = 'center'; g.fillText('HANGRY-O-METER', cx, 92);
+    g.font = `900 36px ${FONT}`; g.textAlign = 'center'; g.fillText('HANGRY-O-METER', cx, 100);
     g.font = '700 24px Arial'; g.fillStyle = '#c8102e'; g.fillText('NAN · LIVE READING · 1:58PM', cx, h - 64);
     g.font = '700 20px Arial'; g.fillStyle = '#333'; g.fillText('(serve the potatoes NOW)', cx, h - 34);
   });
@@ -394,7 +399,7 @@ export function noticeTex() {
   return canvasTex(768, 512, (g, w, h) => {
     g.fillStyle = '#b8864a'; g.fillRect(0, 0, w, h); for (let i = 0; i < 3000; i++) { g.fillStyle = 'rgba(80,50,20,0.25)'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
     const note = (x, y, nw, nh, bg, rot, lines) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(4, 4, nw, nh); g.fillStyle = bg; g.fillRect(0, 0, nw, nh); g.fillStyle = '#c8102e'; g.beginPath(); g.arc(nw / 2, 8, 6, 0, 7); g.fill();
-      g.fillStyle = '#111'; g.textAlign = 'center'; lines.forEach(([t, s], i) => { g.font = `900 ${s}px Arial`; g.fillText(t, nw / 2, 34 + i * (s + 6)); }); g.restore(); };
+      g.fillStyle = '#111'; g.textAlign = 'center'; let ly = 22; lines.forEach(([t, s]) => { ly += s + 6; g.font = `900 ${s}px Arial`; g.fillText(t, nw / 2, ly); }); g.restore(); };
     g.font = `900 40px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText('RESIDENTS\' NOTICES', w / 2, 44);
     note(24, 70, 230, 160, '#fffbe0', -0.04, [['WHO\'S BUSY', 22], ['Joan: 3 parties booked,', 18], ['0 free evenings', 18], ['Pat: 2 parties', 16], ['Ron: asleep', 16]]);
     note(275, 66, 220, 150, '#e0f4ff', 0.03, [['LINE DANCING', 22], ['FULL', 30], ['(Joan, Maureen', 16], ['& the girls)', 16]]);

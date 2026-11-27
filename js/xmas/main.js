@@ -81,9 +81,10 @@ if (room.stash) for (let i = 0; i < 5; i++) items.spawn(['qstreet', 'celebration
 // ---------------- the family ----------------
 const cast = []; player.cast = cast;
 const gameStub = { running: true };
-const spots = (room.tommySpots || []).slice();
+const spots0 = (room.tommySpots || []).slice(), inside = room.indoors && room.nav ? room.nav.sampleSpots(240).filter(s => room.indoors(s.x, s.y)) : [];
+const spots = (SEL.mode === 'fling' ? spots0 : inside.length >= 4 ? inside : spots0).sort(() => Math.random() - 0.5);      // (everyone starts in the house: it's cold out)
 FAMILY_IDS.filter(id => id !== ME).forEach((id, i) => {
-  const s = spots[(i * 3) % Math.max(1, spots.length)] || { x: room.start.x + i * 0.6, y: room.start.z - 2 };
+  const s = spots[i % Math.max(1, spots.length)] || { x: room.start.x + i * 0.6, y: room.start.z - 2 };
   const c = new SquadMember(scene, room, physics, id, [s.x, s.y, Math.random() * 6], gameStub);
   c.fam = FAMILY[id];
   cast.push(c);
