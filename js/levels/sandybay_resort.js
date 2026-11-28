@@ -14,14 +14,14 @@ import { FL, EAVE, C, Bag, roofGeo, roofTrim, porchRoof, bagWindow, homePoint, M
 
 // ---- the layout (x along Nan's street, +z toward the road in front of her home)
 export const L = {
-  ROAD: { z0: 7.0, z1: 12.5, x0: -46, x1: 46 },
+  ROAD: { z0: 8.5, z1: 14.0, x0: -46, x1: 46 },
   GATE_X: -27, SEA_X: 48.0, SEA_T: 0.8, PROM: 4.0,
-  BOUNDS: { x0: -27, x1: 52.7, z0: -26.4, z1: 15.3 },
+  BOUNDS: { x0: -27, x1: 52.7, z0: -26.4, z1: 16.0 },
   CLUB: { x0: 27.4, x1: 46.0, z0: -9.5, z1: 6.2 },            // the pool garden (the clubhouse behind it)
-  HEDGE: { z0: -12.5, z1: -11.8 },                             // the long hedge across the bottom of Nan's garden (deep: her garages are at the bottom)
+  HEDGE: { z0: -16.4, z1: -15.7 },                             // the long hedge across the bottom of Nan's garden (deep: her sheds are at the bottom)
   HEDGE_NEXT: { z0: -9.5, z1: -8.8 },                          // the hedge between her left-hand neighbour and the home behind it
   PEBBLE: { z0: -26.15, z1: -20.65 },                          // Pebble Road, behind the green verge
-  NEXT: { x: -21.0, xp: 20.6 },                                // Nan's neighbours' middles (the left one, -x; the right one, +x)
+  NEXT: { x: -21.0, xp: 23.0 },                                // Nan's neighbours' middles (the left one, -x; the right one, +x, turned end-on to the road to fit beside her bigger home)
   POOL: { x0: 29.0, x1: 41.0, z0: -3.0, z1: 3.0 },
   N1Z: 19.25,                                                   // across the road: the homes' middle line
 };
@@ -36,7 +36,7 @@ export function buildResort(k, scene, W, rnd) {
 
   // ================================================= roads, kerbs, paths
   flat('tarmac', RD.x0 - 8, RD.z0, RD.x1, RD.z1, 0.008, 4);                                    // Nan's street (Wave Road)
-  flat('tarmac', 40.0, 5.6, 46.6, 14.0, 0.009, 4);                                             // the turning head by the sea wall
+  flat('tarmac', 40.0, RD.z0 - 1.4, 46.6, RD.z1 + 1.5, 0.009, 4);                                             // the turning head by the sea wall
   flat('tarmac', 5.21, RD.z1, 11.21, 70, 0.0085, 4);                                           // Seafarer Drive, off to the north
   flat('tarmac', -31.5, L.PEBBLE.z0, 46, L.PEBBLE.z1, 0.008, 4); flat('tarmac', -31.5, 38.4, 46, 43.9, 0.008, 4);   // Pebble Road (behind the green verge), Clearwater Drive
   flat('tarmac', -38.0, -90, -31.5, 90, 0.0075, 4);                                            // Thorney Bay Road
@@ -44,7 +44,7 @@ export function buildResort(k, scene, W, rnd) {
   kerb(RD.x0 - 8, RD.z0 - 0.15, 40, RD.z0); kerb(RD.x0 - 8, RD.z1, 5.21, RD.z1 + 0.15); kerb(11.21, RD.z1, 40, RD.z1 + 0.15);
   kerb(5.06, RD.z1, 5.21, 70); kerb(11.21, RD.z1, 11.36, 70);
   for (const z of [L.PEBBLE.z0 - 0.15, L.PEBBLE.z1, 38.25, 43.9]) kerb(-31.5, z, 46, z + 0.15);
-  kerb(40, 5.45, 46.6, 5.6); kerb(40, 14.0, 46.6, 14.15);
+  kerb(40, RD.z0 - 1.55, 46.6, RD.z0 - 1.4); kerb(40, RD.z1 + 1.5, 46.6, RD.z1 + 1.65);
   // the road markings: SLOW, 5 MPH, a give-way at Seafarer Drive, a speed table
   for (const [x, t] of [[-20, 'SLOW'], [30, '5']]) k.label(t, t === '5' ? 1.2 : 2.6, 1.0, [x, 0.02, (RD.z0 + RD.z1) / 2 + 1.2], [-Math.PI / 2, 0, Math.PI / 2], { bg: '#3e3f41', fg: '#f4f4ee', border: null, size: 130 });
   for (let x = 5.6; x < 10.9; x += 0.6) R(x, RD.z1 + 0.25, x + 0.35, RD.z1 + 0.4, 0.004, 0.016, 0xf4f4ee);
@@ -156,7 +156,7 @@ export function buildResort(k, scene, W, rnd) {
   }
 
   // ================================================= the SEA WALL, the promenade, the beach and the estuary
-  { const X = L.SEA_X, T2 = L.SEA_T, H = 2.8, gz0 = 8.2, gz1 = 11.4, PX0 = X + T2, PX1 = PX0 + L.PROM;
+  { const X = L.SEA_X, T2 = L.SEA_T, H = 2.8, gz0 = RD.z0 + 1.2, gz1 = RD.z1 - 1.1, PX0 = X + T2, PX1 = PX0 + L.PROM;
     for (const [z0, z1] of [[-90, gz0], [gz1, 90]]) { T('render', X, z0, X + T2, z1, H, H / 2, 2); k.blockers.push({ x0: X, x1: X + T2, z0: Math.max(z0, B.z0 - 1), z1: Math.min(z1, B.z1 + 1), y1: H }); }
     for (const [z0, z1] of [[-90, gz0], [gz1, 90]]) R(X - 0.05, z0, X + T2 + 0.05, z1, 0.08, H + 0.04, 0xe6e6e2);   // the coping on top
     for (let z = -88; z < 90; z += 6) if (z < gz0 - 0.2 || z > gz1 + 0.2) k.box(0.01, H - 0.1, 0.02, X + T2 + 0.006, H / 2, z, 0xd8d8d4);   // the panel joints
@@ -198,11 +198,12 @@ export function buildResort(k, scene, W, rnd) {
 
   // ================================================= outside the park: Thorney Bay Road's verges, trees, Canvey's houses
   { const tree = (x, z, s = 1) => { k.cyl(0.12 * s, 0.18 * s, 2.6 * s, x, 1.3 * s, z, 0x6a5a4a, 6); k.parts.push(part(new THREE.IcosahedronGeometry(1.5 * s, 1), [0x4a6a32, 0x557a3a, 0x3e5e2c][Math.abs(Math.round(x + z)) % 3], [x, 3.4 * s, z], [0, x, 0], [1, 1.15, 1])); };
-    for (let z = -60; z < 70; z += 7) { if (Math.abs(z - 9.75) < 6) continue; tree(-40.5, z + (Math.abs(z) % 3), 0.9 + (Math.abs(z) % 5) * 0.08); }
-    for (let z = -60; z < 70; z += 9) if (Math.abs(z - 9.75) > 8) T('hedge', -29.6, z, -28.6, z + 8.6, 1.4, 0.7, 1);
-    flat('tarmac', -46, 7.0, -38.0, 12.5, 0.008, 4);       // the road on into Canvey
+    const RDM = (RD.z0 + RD.z1) / 2;
+    for (let z = -60; z < 70; z += 7) { if (Math.abs(z - RDM) < 6) continue; tree(-40.5, z + (Math.abs(z) % 3), 0.9 + (Math.abs(z) % 5) * 0.08); }
+    for (let z = -60; z < 70; z += 9) if (Math.abs(z - RDM) > 8) T('hedge', -29.6, z, -28.6, z + 8.6, 1.4, 0.7, 1);
+    flat('tarmac', -46, RD.z0, -38.0, RD.z1, 0.008, 4);       // the road on into Canvey
     // a row of Canvey chalet bungalows across Thorney Bay Road (brick, tiled roofs)
-    for (let i = 0; i < 9; i++) { const z = -52 + i * 13, x0 = -56, x1 = -46; if (Math.abs(z + 3.25 - 9.75) < 6) continue;
+    for (let i = 0; i < 9; i++) { const z = -52 + i * 13, x0 = -56, x1 = -46; if (Math.abs(z + 3.25 - RDM) < 6) continue;
       T('brick', x0, z, x1, z + 7.5, 2.7, 1.35, 1); const r = roofGeo(W, 'roof', x0, x1, z, z + 7.5, { eave: 2.7, slope: 0.7, ov: 0.3 }); void r;
       for (const dz of [1.6, 5.2]) k.box(0.06, 1.1, 1.3, x1 + 0.02, 1.5, z + dz, 0x34424e); k.box(0.06, 2.0, 0.9, x1 + 0.02, 1.0, z + 3.4, [0x8a1a1e, 0x1e2a44, 0x2a5a3a][i % 3]); }
   }
@@ -242,7 +243,7 @@ export function buildResort(k, scene, W, rnd) {
   // Nan's own row on Wave Road: a neighbour each side (no drive: the left one's would run into the fence by the gate, the
   // right one's into Nan's side path); you can't walk through them
   homes.push({ model: 'sonata', x: L.NEXT.x, z: 0, ry: 0, lights: true, near: true, noDrive: true, solid: true },
-    { model: 'sonata', x: L.NEXT.xp, z: 0, ry: 0, lights: true, near: true, noDrive: true, solid: true });
+    { model: 'sonata', x: L.NEXT.xp, z: -0.5, ry: Math.PI / 2, lights: true, near: true, noDrive: true, noPath: true, solid: true });
   // behind the left-hand neighbour, back to back with it: a home fronting Pebble Road (behind Nan herself, only the hedge)
   homes.push({ model: 'sonata', x: L.NEXT.x, z: -13.6, ry: Math.PI, lights: true, near: true, noDrive: true, solid: true });
   row(L.PEBBLE.z0 - 4.0 - 3.05, 0, -29, 46, ['sonata', 'sofia', 'majestic', 'residence'], { lights: 0.6 });   // across Pebble Road, facing it
@@ -252,11 +253,11 @@ export function buildResort(k, scene, W, rnd) {
     const [ax, , az] = homePoint(h, -hx - 3.2, 0, 3.05 + 4.0), [bx, , bz] = homePoint(h, -hx - 0.2, 0, -2.5);
     if (!h.noDrive) flat('paving', Math.min(ax, bx), Math.min(az, bz), Math.max(ax, bx), Math.max(az, bz), 0.011, 1);
     const [px0, , pz0] = homePoint(h, doorX - 0.55, 0, 3.05 + 1.0), [px1, , pz1] = homePoint(h, doorX + 0.55, 0, 3.05 + 4.0);
-    flat('slab', Math.min(px0, px1), Math.min(pz0, pz1), Math.max(px0, px1), Math.max(pz0, pz1), 0.012, 1.2);
+    if (!h.noPath) flat('slab', Math.min(px0, px1), Math.min(pz0, pz1), Math.max(px0, px1), Math.max(pz0, pz1), 0.012, 1.2);
     if (n % 3 !== 2 && !h.noDrive) { const [cx, , cz] = homePoint(h, -hx - 1.7, 0, 1.6); car(k, cx, cz, h.ry + Math.PI / 2, CARS[n % CARS.length], h.near); }
     if (h.lights) { const p0 = homePoint(h, -hx - 0.2, EAVE - 0.2, 3.05 + 0.42), p1 = homePoint(h, hx + 0.2, EAVE - 0.2, 3.05 + 0.42);
       lightString(k, [p0, p1], { spacing: h.near ? 0.22 : 0.4, sag: 0.06, colors: n % 2 ? MULTI : WARM, halo: h.near ? 0.08 : 0, wire: null }); }
-    if (h.near && n % 2 === 0) { const [rx, , rz] = homePoint(h, doorX + 2.5, 0, 3.05 + 2.0); reindeer(k, rx, rz, h.ry + 0.4, 0.75); }
+    if (h.near && n % 2 === 0 && !h.noPath) { const [rx, , rz] = homePoint(h, doorX + 2.5, 0, 3.05 + 2.0); reindeer(k, rx, rz, h.ry + 0.4, 0.75); }
     if (h.solid) { const box = (lx0, lz0, lx1, lz1, y1) => { const a = homePoint(h, lx0, 0, lz0), b = homePoint(h, lx1, 0, lz1);
         k.blockers.push({ x0: Math.min(a[0], b[0]), x1: Math.max(a[0], b[0]), z0: Math.min(a[2], b[2]), z1: Math.max(a[2], b[2]), y1 }); };
       box(-hx - 0.1, -3.15, hx + 0.1, 3.15, EAVE); box(doorX - 0.8, 3.05, doorX + 0.8, 3.05 + 1.05, FL); }

@@ -206,7 +206,7 @@ export function reindeer(k, x, z, ry = 0, s = 1, y0 = 0) {
   for (const dz of [-0.05, 0.05]) { seg([0.52, 0.97, dz], [0.44, 1.22, dz * 3]); seg([0.47, 1.1, dz * 2], [0.6, 1.18, dz * 3]); seg([0.45, 1.16, dz * 2.5], [0.34, 1.26, dz * 3.5]); }   // antlers
   for (const dz of [-0.09, 0.09]) for (let i = 0; i < outline.length - 1; i++) { const a = outline[i], b = outline[i + 1]; for (let t = 0; t < 1; t += 0.34) { const p = W(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, dz); bulb(k, p[0], p[1], p[2], 0xfff0c8, 0.018, 0.12); } }
   { const p = W(0.72, 0.9, 0); bulb(k, p[0], p[1], p[2], 0xff2020, 0.035, 0.25); }               // a red nose
-  if (!y0) k.blockers.push({ x0: x - 0.6 * s, x1: x + 0.6 * s, z0: z - 0.6 * s, z1: z + 0.6 * s, y1: 1.2 });
+  if (!y0) k.blockers.push({ x0: x - 0.6 * s, x1: x + 0.6 * s, z0: z - 0.6 * s, z1: z + 0.6 * s, y1: 1.2, soft: true });   // (a decoration: people walk round it, the player slides past)
 }
 export function birdTable(k, x, z) {
   k.box(0.08, 1.4, 0.08, x, 0.7, z, 0x6a4424, { block: true }); for (const a of [0, 1.57, 3.14, 4.71]) k.box(0.3, 0.04, 0.05, x + Math.cos(a) * 0.12, 0.08, z + Math.sin(a) * 0.12, 0x5a3a20, { rot: [0, a, 0] });

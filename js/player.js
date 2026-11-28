@@ -473,7 +473,8 @@ export class Player {
     const r = 0.22, sx = cx, sz = cz;
     // (a ghost (Imposter, once you're dead) floats straight through walls and furniture, anywhere in the map)
     if (this.ghost) { this.rig.position.x += cx - _v.x; this.rig.position.z += cz - _v.z; return; }
-    const push = (list) => { for (const b of list) {
+    const push = (list) => { for (let pass = 0; pass < 2; pass++) for (const b of list) {     // (twice: pushed out of one thing into the next, in a corner, settles)
+      if (b.soft) continue;                                     // small things (chairs, lamps, plants, decorations) never stop you: you slide past
       if (!this.flatMode && !((b.y1 ?? 1) > 1.6)) continue;   // in VR only walls stop you (you can lean over tables)
       const nx = THREE.MathUtils.clamp(cx, b.x0, b.x1), nz = THREE.MathUtils.clamp(cz, b.z0, b.z1);
       const dx = cx - nx, dz = cz - nz, d = Math.hypot(dx, dz);

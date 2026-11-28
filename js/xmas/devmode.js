@@ -70,7 +70,7 @@ export function startDev(XM) {
     for (const [k, z] of Object.entries(Z)) if (z && Number.isFinite(z.x0)) out.push([k, PLACE_NAMES[k] || ('📍 ' + k), (z.x0 + z.x1) / 2, (z.z0 + z.z1) / 2]);
     if (room.start) out.unshift(['start', '🎬 Where you start', room.start.x, room.start.z]);
     if (room.gardenStart) out.push(['gstart', '🚀 Fling start', room.gardenStart.x, room.gardenStart.z]);
-    if (room.placeId === 'sandybay') out.push(['garage', '🚗 Garages & Nan\'s car', -9.2, -5.4], ['pebble', '🛣️ Pebble Road', 6, -23.3], ['sea', '🌊 The sea wall', 50.6, 0]);
+    if (room.placeId === 'sandybay') out.push(['garage', '🚗 Sheds & Nan\'s car', Z.sheds ? (Z.sheds.x0 + Z.drive.x1) / 2 : -9.2, Z.sheds ? Z.sheds.z1 + 0.6 : -5.4], ['pebble', '🛣️ Pebble Road', 6, -23.3], ['sea', '🌊 The sea wall', 50.6, 0]);
     return out;
   };
   const jump = (x, z) => { player.rig.position.x = x; player.rig.position.z = z; player.resetHandHistory && player.resetHandHistory(); };
