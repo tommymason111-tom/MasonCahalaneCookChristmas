@@ -18,10 +18,10 @@ export const L = {
   GATE_X: -27, SEA_X: 48.0, SEA_T: 0.8, PROM: 4.0,
   BOUNDS: { x0: -27, x1: 52.7, z0: -26.4, z1: 15.3 },
   CLUB: { x0: 27.4, x1: 46.0, z0: -9.5, z1: 6.2 },            // the pool garden (the clubhouse behind it)
-  HEDGE: { z0: -12.5, z1: -11.8 },                             // the long hedge across the bottom of Nan's garden (deep: her garages are at the bottom)
+  HEDGE: { z0: -15.4, z1: -14.7 },                             // the long hedge across the bottom of Nan's garden (deep: her sheds are at the bottom)
   HEDGE_NEXT: { z0: -9.5, z1: -8.8 },                          // the hedge between her left-hand neighbour and the home behind it
   PEBBLE: { z0: -26.15, z1: -20.65 },                          // Pebble Road, behind the green verge
-  NEXT: { x: -21.0, xp: 20.6 },                                // Nan's neighbours' middles (the left one, -x; the right one, +x)
+  NEXT: { x: -21.0, xp: 20.95 },                               // Nan's neighbours' middles (the left one, -x; the right one, +x: moved along for her bigger home)
   POOL: { x0: 29.0, x1: 41.0, z0: -3.0, z1: 3.0 },
   N1Z: 19.25,                                                   // across the road: the homes' middle line
 };
