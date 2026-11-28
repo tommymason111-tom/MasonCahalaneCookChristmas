@@ -181,10 +181,21 @@ export function bedside(k, x, z, ry, { lamp = true } = {}) {
   if (lamp) tableLamp(k, x, 0.55, z, { base: 0x9aa0a4 });
 }
 // mirrored sliding wardrobes along a wall (axis 'x' = along x at z = c, d = the room side)
-export function mirrorWardrobe(k, axis, c, a0, a1, d, { h = 2.25, depth = 0.62 } = {}) {
+// mirror: floor-to-ceiling mirrored sliding doors (bright silver-grey glass in slim frames, soft streaks of 'reflection')
+export function mirrorWardrobe(k, axis, c, a0, a1, d, { h = 2.25, depth = 0.62, mirror = false } = {}) {
   const B = (w, hh, t, a, y, off, col, opts) => axis === 'x' ? k.box(w, hh, t, a, y, c + d * off, col, opts) : k.box(t, hh, w, c + d * off, y, a, col, opts);
   const m = (a0 + a1) / 2, len = a1 - a0;
   B(len, h, depth, m, h / 2, depth / 2, 0xe8e6e2, { block: true });
+  if (mirror) {
+    const n = Math.max(2, Math.round(len / 0.95)), w = len / n, FR = 0x7e858a;
+    for (let i = 0; i < n; i++) { const a = a0 + w * (i + 0.5), off = depth + 0.006 + (i % 2) * 0.028;
+      B(w + 0.01, h - 0.05, 0.016, a, h / 2, off, FR);                                                    // the slim frame (it shows round the glass)
+      B(w - 0.05, h - 0.13, 0.012, a, h / 2, off + 0.006, i % 2 ? 0xd9e2e7 : 0xd0dade);                  // the mirror glass
+      for (const [u, sw, col] of [[-0.22, 0.09, 0xeef4f7], [-0.08, 0.035, 0xe8eff3], [0.18, 0.06, 0xc4ced4]]) B(w * sw * 2, h - 0.2, 0.004, a + u * w, h / 2 + 0.02, off + 0.013, col);    // soft streaks
+    }
+    B(len, 0.05, 0.07, m, h - 0.025, depth + 0.035, FR); B(len, 0.05, 0.07, m, 0.025, depth + 0.035, FR);     // the top and bottom tracks
+    return;
+  }
   const n = Math.max(2, Math.round(len / 0.9)), w = len / n;
   for (let i = 0; i < n; i++) { const a = a0 + w * (i + 0.5); B(w - 0.03, h - 0.12, 0.02, a, h / 2, depth + 0.01 + (i % 2) * 0.03, i % 2 ? 0xb9c8d0 : 0xa9bac4); B(w - 0.01, h - 0.08, 0.015, a, h / 2, depth + 0.004 + (i % 2) * 0.03, 0x9aa0a4); }
   B(len, 0.04, 0.06, m, h - 0.02, depth + 0.03, 0x9aa0a4); B(len, 0.04, 0.06, m, 0.02, depth + 0.03, 0x9aa0a4);

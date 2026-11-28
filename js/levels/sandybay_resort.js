@@ -10,14 +10,16 @@ import { waterMaterial } from './outdoor.js';
 import * as TX from './sandybay_tex.js';
 import { FL, EAVE, C, Bag, roofGeo, roofTrim, porchRoof, bagWindow, homePoint, MODELS } from './sandybay_estate.js';
 
-// ---- the layout (x along Nan's street, +z toward the road in front of her home)
+// ---- the layout (x along Nan's street, +z toward the road in front of her home). DZ: the street and everything across
+// it sit this much further out than they used to, so Nan's garages fit in front of her home
+const DZ = 4.0;
 export const L = {
-  ROAD: { z0: 7.0, z1: 12.5, x0: -46, x1: 46 },
+  ROAD: { z0: 7.0 + DZ, z1: 12.5 + DZ, x0: -46, x1: 46 },
   GATE_X: -27, SEA_X: 48.0, SEA_T: 0.8, PROM: 4.0,
-  BOUNDS: { x0: -27, x1: 52.7, z0: -9.5, z1: 15.3 },
-  CLUB: { x0: 22.4, x1: 46.0, z0: -9.5, z1: 6.2 },            // the pool garden (the clubhouse behind it)
+  BOUNDS: { x0: -27, x1: 52.7, z0: -9.5, z1: 15.3 + DZ },
+  CLUB: { x0: 22.4, x1: 46.0, z0: -9.5, z1: 6.2 + DZ },       // the pool garden (the clubhouse behind it)
   POOL: { x0: 29.0, x1: 41.0, z0: -3.0, z1: 3.0 },
-  N1Z: 19.25,                                                   // across the road: the homes' middle line
+  N1Z: 19.25 + DZ,                                              // across the road: the homes' middle line
 };
 const WHITE = 0xf5f5f3, ANTH = 0x2b2d30, BLACK = 0x1c1d1f, TURQ = 0x5ec8c8, SLATE = 0x4a4e55;
 
@@ -30,7 +32,7 @@ export function buildResort(k, scene, W, rnd) {
 
   // ================================================= roads, kerbs, paths
   flat('tarmac', RD.x0 - 8, RD.z0, RD.x1, RD.z1, 0.008, 4);                                    // Nan's street (Shore Drive)
-  flat('tarmac', 40.0, 5.6, 46.6, 14.0, 0.009, 4);                                             // the turning head by the sea wall
+  flat('tarmac', 40.0, 5.6 + DZ, 46.6, 14.0 + DZ, 0.009, 4);                                             // the turning head by the sea wall
   flat('tarmac', 5.21, RD.z1, 11.21, 70, 0.0085, 4);                                           // Seafarer Drive, off to the north
   flat('tarmac', -31.5, -30.1, 46, -24.6, 0.008, 4); flat('tarmac', -31.5, 38.4, 46, 43.9, 0.008, 4);   // the next streets (Coastal Drive, Clearwater Drive)
   flat('tarmac', -38.0, -90, -31.5, 90, 0.0075, 4);                                            // Thorney Bay Road
@@ -38,7 +40,7 @@ export function buildResort(k, scene, W, rnd) {
   kerb(RD.x0 - 8, RD.z0 - 0.15, 40, RD.z0); kerb(RD.x0 - 8, RD.z1, 5.21, RD.z1 + 0.15); kerb(11.21, RD.z1, 40, RD.z1 + 0.15);
   kerb(5.06, RD.z1, 5.21, 70); kerb(11.21, RD.z1, 11.36, 70);
   for (const z of [-30.25, -24.6, 38.25, 43.9]) kerb(-31.5, z, 46, z + 0.15);
-  kerb(40, 5.45, 46.6, 5.6); kerb(40, 14.0, 46.6, 14.15);
+  kerb(40, 5.45 + DZ, 46.6, 5.6 + DZ); kerb(40, 14.0 + DZ, 46.6, 14.15 + DZ);
   // the road markings: SLOW, 5 MPH, a give-way at Seafarer Drive, a speed table
   for (const [x, t] of [[-20, 'SLOW'], [30, '5']]) k.label(t, t === '5' ? 1.2 : 2.6, 1.0, [x, 0.02, (RD.z0 + RD.z1) / 2 + 1.2], [-Math.PI / 2, 0, Math.PI / 2], { bg: '#3e3f41', fg: '#f4f4ee', border: null, size: 130 });
   for (let x = 5.6; x < 10.9; x += 0.6) R(x, RD.z1 + 0.25, x + 0.35, RD.z1 + 0.4, 0.004, 0.016, 0xf4f4ee);
@@ -82,13 +84,13 @@ export function buildResort(k, scene, W, rnd) {
     for (let x = -26.0; x < -16; x += 2.5) R(x - 0.05, 2.6, x + 0.05, RD.z0 - 0.8, 0.004, 0.02, 0xf4f4ee);
   }
   // ---- across the road: the Sales Office & Car Wash
-  { const x0 = -25.5, x1 = -19.0, z0 = 16.4, z1 = 22.0, ev = 3.0;
+  { const x0 = -25.5, x1 = -19.0, z0 = 16.4 + DZ, z1 = 22.0 + DZ, ev = 3.0;
     R(x0, z0, x1, z1, ev, ev / 2, 0xeeeeea, { block: true }); W.sbox(x1 - x0 + 0.02, ev - 0.4, z1 - z0 + 0.02, (x0 + x1) / 2, 0.4 + (ev - 0.4) / 2, (z0 + z1) / 2, 'sidG');
     const b = new Bag(), r = roofGeo(W, 'roof', x0, x1, z0, z1, { eave: ev, slope: 0.42 }); roofTrim(b, r); k.parts.push(...b.trim);
     k.box(4.0, 1.7, 0.05, -22.25, 1.45, z0 - 0.02, C.GLASS); for (let i = 0; i <= 4; i++) k.box(0.06, 1.8, 0.08, -24.25 + i, 1.45, z0 - 0.04, ANTH);
     k.label('sales', 4.4, 0.55, [-22.25, 2.68, z0 - 0.08], [0, Math.PI, 0], { tex: TX.parkSignTex(['Sales Office & Car Wash', 'NEW HOMES FROM THE SONATA TO THE RESIDENCE · ASK INSIDE'], { bg: '#4a4e55' }) });
     // the car wash: a canopy on slim posts over a bay, a jet-wash unit, a hose
-    const cx0 = -18.0, cx1 = -12.5, cz0 = 16.2, cz1 = 21.5;
+    const cx0 = -18.0, cx1 = -12.5, cz0 = 16.2 + DZ, cz1 = 21.5 + DZ;
     for (const x of [cx0, cx1]) for (const z of [cz0, cz1]) k.box(0.12, 3.0, 0.12, x, 1.5, z, 0x9aa0a6);
     R(cx0 - 0.2, cz0 - 0.2, cx1 + 0.2, cz1 + 0.2, 0.25, 3.1, 0xe8e8e4); R(cx0 - 0.22, cz0 - 0.22, cx1 + 0.22, cz0 - 0.18, 0.3, 3.1, TURQ);
     k.label('carwash', 3.0, 0.28, [(cx0 + cx1) / 2, 3.1, cz0 - 0.235], [0, Math.PI, 0], { bg: '#5ec8c8', fg: '#ffffff', border: null, size: 70 });
@@ -166,7 +168,7 @@ export function buildResort(k, scene, W, rnd) {
   }
 
   // ================================================= the SEA WALL, the promenade, the beach and the estuary
-  { const X = L.SEA_X, T2 = L.SEA_T, H = 2.8, gz0 = 8.2, gz1 = 11.4, PX0 = X + T2, PX1 = PX0 + L.PROM;
+  { const X = L.SEA_X, T2 = L.SEA_T, H = 2.8, gz0 = 8.2 + DZ, gz1 = 11.4 + DZ, PX0 = X + T2, PX1 = PX0 + L.PROM;
     for (const [z0, z1] of [[-90, gz0], [gz1, 90]]) { T('render', X, z0, X + T2, z1, H, H / 2, 2); k.blockers.push({ x0: X, x1: X + T2, z0: Math.max(z0, B.z0 - 1), z1: Math.min(z1, B.z1 + 1), y1: H }); }
     for (const [z0, z1] of [[-90, gz0], [gz1, 90]]) R(X - 0.05, z0, X + T2 + 0.05, z1, 0.08, H + 0.04, 0xe6e6e2);   // the coping on top
     for (let z = -88; z < 90; z += 6) if (z < gz0 - 0.2 || z > gz1 + 0.2) k.box(0.01, H - 0.1, 0.02, X + T2 + 0.006, H / 2, z, 0xd8d8d4);   // the panel joints
@@ -208,11 +210,11 @@ export function buildResort(k, scene, W, rnd) {
 
   // ================================================= outside the park: Thorney Bay Road's verges, trees, Canvey's houses
   { const tree = (x, z, s = 1) => { k.cyl(0.12 * s, 0.18 * s, 2.6 * s, x, 1.3 * s, z, 0x6a5a4a, 6); k.parts.push(part(new THREE.IcosahedronGeometry(1.5 * s, 1), [0x4a6a32, 0x557a3a, 0x3e5e2c][Math.abs(Math.round(x + z)) % 3], [x, 3.4 * s, z], [0, x, 0], [1, 1.15, 1])); };
-    for (let z = -60; z < 70; z += 7) { if (Math.abs(z - 9.75) < 6) continue; tree(-40.5, z + (Math.abs(z) % 3), 0.9 + (Math.abs(z) % 5) * 0.08); }
-    for (let z = -60; z < 70; z += 9) if (Math.abs(z - 9.75) > 8) T('hedge', -29.6, z, -28.6, z + 8.6, 1.4, 0.7, 1);
-    flat('tarmac', -46, 7.0, -38.0, 12.5, 0.008, 4);       // the road on into Canvey
+    for (let z = -60; z < 70; z += 7) { if (Math.abs(z - 9.75 - DZ) < 6) continue; tree(-40.5, z + (Math.abs(z) % 3), 0.9 + (Math.abs(z) % 5) * 0.08); }
+    for (let z = -60; z < 70; z += 9) if (Math.abs(z - 9.75 - DZ) > 8) T('hedge', -29.6, z, -28.6, z + 8.6, 1.4, 0.7, 1);
+    flat('tarmac', -46, RD.z0, -38.0, RD.z1, 0.008, 4);       // the road on into Canvey
     // a row of Canvey chalet bungalows across Thorney Bay Road (brick, tiled roofs)
-    for (let i = 0; i < 9; i++) { const z = -52 + i * 13, x0 = -56, x1 = -46; if (Math.abs(z + 3.25 - 9.75) < 6) continue;
+    for (let i = 0; i < 9; i++) { const z = -52 + i * 13, x0 = -56, x1 = -46; if (Math.abs(z + 3.25 - 9.75 - DZ) < 6) continue;
       T('brick', x0, z, x1, z + 7.5, 2.7, 1.35, 1); const r = roofGeo(W, 'roof', x0, x1, z, z + 7.5, { eave: 2.7, slope: 0.7, ov: 0.3 }); void r;
       for (const dz of [1.6, 5.2]) k.box(0.06, 1.1, 1.3, x1 + 0.02, 1.5, z + dz, 0x34424e); k.box(0.06, 2.0, 0.9, x1 + 0.02, 1.0, z + 3.4, [0x8a1a1e, 0x1e2a44, 0x2a5a3a][i % 3]); }
   }
@@ -257,7 +259,7 @@ export function buildResort(k, scene, W, rnd) {
   for (let z = -6; z < 6; z += 3.0) bollard(L.SEA_X - 1.2, z);
   const street = (name, x, z, ry) => { for (const s of [-1, 1]) k.box(0.06, 0.9, 0.06, x + Math.cos(ry) * s * 0.55, 0.45, z - Math.sin(ry) * s * 0.55, 0x26282a); k.box(1.25, 0.32, 0.04, x, 0.9, z, 0xffffff, { rot: [0, ry, 0] });
     for (const d of [-1, 1]) k.label(name, 1.2, 0.3, [x + Math.sin(ry) * d * 0.025, 0.9, z + Math.cos(ry) * d * 0.025], [0, ry + (d < 0 ? Math.PI : 0), 0], { tex: TX.streetTex(name) }); };
-  street('Shore Drive', -14.5, RD.z0 - 0.6, 0); street('Seafarer Drive', 12.2, RD.z1 + 0.9, 0); street('Shore Drive', 4.4, RD.z1 + 0.9, 0);
+  street('Shore Drive', -16.4, RD.z0 - 0.6, 0); street('Seafarer Drive', 12.2, RD.z1 + 0.9, 0); street('Shore Drive', 4.4, RD.z1 + 0.9, 0);
 
   // ================================================= the neighbours' homes (rows of them, instanced)
   const row = (z, ry, x0, x1, pattern, opts = {}) => { let x = x0, i = 0;
