@@ -18,7 +18,8 @@ export const L = {
   GATE_X: -27, SEA_X: 48.0, SEA_T: 0.8, PROM: 4.0,
   BOUNDS: { x0: -27, x1: 52.7, z0: -26.4, z1: 15.3 },
   CLUB: { x0: 27.4, x1: 46.0, z0: -9.5, z1: 6.2 },            // the pool garden (the clubhouse behind it)
-  HEDGE: { z0: -9.5, z1: -8.8 },                               // the long hedge across the bottom of Nan's garden
+  HEDGE: { z0: -12.5, z1: -11.8 },                             // the long hedge across the bottom of Nan's garden (deep: her garages are at the bottom)
+  HEDGE_NEXT: { z0: -9.5, z1: -8.8 },                          // the hedge between her left-hand neighbour and the home behind it
   PEBBLE: { z0: -26.15, z1: -20.65 },                          // Pebble Road, behind the green verge
   NEXT: { x: -21.0, xp: 20.6 },                                // Nan's neighbours' middles (the left one, -x; the right one, +x)
   POOL: { x0: 29.0, x1: 41.0, z0: -3.0, z1: 3.0 },
@@ -243,7 +244,7 @@ export function buildResort(k, scene, W, rnd) {
   homes.push({ model: 'sonata', x: L.NEXT.x, z: 0, ry: 0, lights: true, near: true, noDrive: true, solid: true },
     { model: 'sonata', x: L.NEXT.xp, z: 0, ry: 0, lights: true, near: true, noDrive: true, solid: true });
   // behind the left-hand neighbour, back to back with it: a home fronting Pebble Road (behind Nan herself, only the hedge)
-  homes.push({ model: 'sonata', x: L.NEXT.x, z: -13.6, ry: Math.PI, lights: true, near: true, solid: true });
+  homes.push({ model: 'sonata', x: L.NEXT.x, z: -13.6, ry: Math.PI, lights: true, near: true, noDrive: true, solid: true });
   row(L.PEBBLE.z0 - 4.0 - 3.05, 0, -29, 46, ['sonata', 'sofia', 'majestic', 'residence'], { lights: 0.6 });   // across Pebble Road, facing it
   // every home: block paving for one car beside it, a slab path to the steps, a car on some
   const CARS = [0x1e2a44, 0xd8d8d4, 0x8a1a1e, 0x3a3c40, 0x6a7a8a, 0xf4f4f0];

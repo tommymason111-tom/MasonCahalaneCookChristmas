@@ -9,9 +9,11 @@
 //                  master bedroom + en-suite | bathroom, utility / bedroom 2 | study / ENTRANCE HALL (front door) |
 //                  KITCHEN-DINER (island, the table set for nine) | LOUNGE with the cathedral window at the +x end
 //                  decking round the lounge end with a clear glass balustrade, steps down to her side path
-//   z -3 .. -8.8   her back garden: two sheds in the back left-hand corner, the washing line; side hedges
-//   z -8.8 .. -9.5 the long back hedge (a little gate at the side path). No home behind her: just the hedge, then
-//   z -9.5 .. -20.6  THE GREEN, the long grass verge along Pebble Road (Fling the Family is played down it)
+//   z -3 .. -11.8  her back garden: her drive carries on down the side of the house to TWO GARAGES in the back
+//                  left-hand corner (up-and-over doors facing the house), her silver Nissan Micra parked on it;
+//                  the washing line; side hedges
+//   z -11.8..-12.5 the long back hedge (a little gate at the side path). No home behind her: just the hedge, then
+//   z -12.5..-20.6 THE GREEN, the long grass verge along Pebble Road (Fling the Family is played down it)
 //   x 14.5 .. 26.7 Nan's right-hand neighbour (a Sonata); the green carries on behind it
 //   x 27 .. 46     the clubhouse (mock-Tudor gable) and its heated pool behind brick piers and railings
 //   x 48           the white sea wall, a gate through to the promenade, the revetment, the beach, the estuary
@@ -27,6 +29,7 @@ import { updateOutdoor, pottedPlant } from './outdoor.js';
 import { rng, bulb, buildBulbs, lightString, MULTI, WARM, wreath, xmasTree, presents, reindeer, hangryTex, calendarTex, flameTex, blanketTex } from './sandybay_props.js';
 import * as TX from './sandybay_tex.js';
 import { FL, EAVE, PITCH, C, Bag, roofGeo, roofTrim, porchRoof, placeHomes } from './sandybay_estate.js';
+import { nissan } from './nissan.js';
 import { L, buildResort, car, metreUV2 } from './sandybay_resort.js';
 import * as F from './sandybay_furn.js';
 
@@ -39,8 +42,9 @@ const P1 = 3.65, P2 = -0.65;            // kitchen | lounge, hall | kitchen
 const DECK = { x0: P1, x1: 11.35, z0: -5.25, z1: HZ1, endX: HX1 };      // the decking: along the back of the lounge and round its end
 const DSTEP = { x0: 11.35, x1: 12.25, z0: -0.8, z1: 0.8 };                // steps down off the deck to the side path
 const FSTEP = { x0: -2.45, x1: -0.75, land: 4.0, z1: 4.9 };               // the front landing (HZ1 .. land) and steps (land .. z1)
-const LAWN = { x0: -10.8, x1: 24.6, z0: -19.9, z1: -10.2 };               // THE GREEN: the verge behind the back hedge, clear grass for Fling the Family
-const PLOT = { x0: -14.4, x1: 14.3, gate0: 12.4, gate1: 13.6 };           // Nan's plot's sides (hedges), the back gate in the hedge
+const LAWN = { x0: -13.4, x1: 24.6, z0: -19.9, z1: -13.2 };               // THE GREEN: the verge behind the back hedge, clear grass for Fling the Family
+const PLOT = { x0: -14.4, x1: 14.3, gate0: 12.4, gate1: 13.6 };
+const GAR = { x0: -13.85, xm: -10.55, x1: -6.5, z0: -11.65, z1: -6.45 };          // Nan's two garages (doors on the z1 side, facing the house)           // Nan's plot's sides (hedges), the back gate in the hedge
 const PAINT = { lounge: 0xd8d6d2, kitchen: 0xbdb8b0, hall: 0xc9c2b7, bed: 0xc9c2b7, bed2: 0xd8d6d2, study: 0xd8d6d2, bath: 0xe9e4da, util: 0xd8d6d2 };
 
 export function buildSandyBay(scene) {
@@ -198,13 +202,17 @@ export function buildSandyBay(scene) {
   for (const x of [HX0 - 0.03, HX1 + 0.03]) k.box(0.03, 0.04, HZ1 - HZ0 + 0.06, x, 0.71, 0, C.WHITE);
   // wall lanterns (anthracite, warm)
   const lantern = (x, y, z, nx, nz) => { k.box(0.13 + Math.abs(nz) * 0.0, 0.22, 0.13, x + nx * 0.08, y, z + nz * 0.08, 0x1e1f21); k.box(0.09, 0.14, 0.09, x + nx * 0.085, y - 0.01, z + nz * 0.085, 0xffe0a0); k.lamp(x + nx * 0.09, y - 0.01, z + nz * 0.09, 0xffe2a8, 0.0, true); };
-  lantern(-2.38, Y(1.9), HZ1, 0, 1); lantern(-0.82, Y(1.9), HZ1, 0, 1); lantern(4.85, Y(1.9), HZ0, 0, -1); lantern(HX1, Y(1.9), 2.75, 1, 0); lantern(HX1, Y(1.9), -2.75, 1, 0);
+  lantern(-2.38, Y(1.9), HZ1, 0, 1); lantern(-0.82, Y(1.9), HZ1, 0, 1); lantern(4.0, Y(1.9), HZ0, 0, -1); lantern(HX1, Y(1.9), 2.75, 1, 0); lantern(HX1, Y(1.9), -2.75, 1, 0);
   // the front door: anthracite composite with a sandblasted glass strip, open into the hall; the house number
-  F.openDoor({ box: (w, h, d, x, y, z, c) => k.box(w, h, d, x, y + FL, z, c) }, -2.13, HZ1 - 0.16, false, -1, 1.02, { col: C.ANTH, lever: 0xc8ccd0 });
+  const kFL = { box: (w, h, d, x, y, z, c, o) => k.box(w, h, d, x, y + FL, z, c, o) };      // (a door on the outside walls: heights from the floor)
+  F.openDoor(kFL, -2.13, HZ1 - 0.16, false, -1, 1.02, { col: C.ANTH, lever: 0xc8ccd0 });
   k.box(0.045, 1.5, 0.16, -2.13, Y(1.15), HZ1 - 0.16 - 0.55, 0xdfe5e8);
   wreath(k, -2.1, Y(1.62), HZ1 - 0.7, 1, 0.16);
   k.label('17', 0.3, 0.16, [-2.85, Y(1.55), HZ1 + 0.03], [0, 0, 0], { bg: '#2b2d30', fg: '#ffffff', border: null, size: 80 });
   k.label("JOAN'S", 0.5, 0.12, [-2.85, Y(1.36), HZ1 + 0.03], [0, 0, 0], { bg: '#2b2d30', fg: '#6dcfcf', border: null, size: 60 });
+  // the French doors out of the lounge onto the deck: glazed, both open, folded right back flat against the outside wall
+  F.openDoor(kFL, 5.1, HZ0 - 0.05, true, -1, 0.8, { glazed: (a, b, c, d) => glassQuad(...[a, b, c, d].map(([x, y, z]) => [x, y + FL, z])) });
+  F.openDoor(kFL, 6.7, HZ0 - 0.05, true, 1, 0.8, { glazed: (a, b, c, d) => glassQuad(...[a, b, c, d].map(([x, y, z]) => [x, y + FL, z])) });
   // the utility's back door: three little steps down to the slab path
   for (let i = 0; i < 3; i++) { const h = FL * (3 - i) / 4; R(-3.45, HZ0 - 0.3 * (i + 1), -2.5, HZ0 - 0.3 * i, h, h / 2, C.STEP, { block: true }); }
   // the front landing and three steps (pale), black handrails; a doormat
@@ -254,14 +262,16 @@ export function buildSandyBay(scene) {
   // ======================================================== the plot: front lawn, path, hardstanding, Nan's car, the back
   T('slab', FSTEP.x0, FSTEP.z1, FSTEP.x1, L.ROAD.z0 - 0.15, 0.012, 0.006, 1.2);                          // the path to the road
   T('slab', HX0 - 1.0, HZ1 + 0.4, FSTEP.x0, HZ1 + 1.4, 0.012, 0.006, 1.2);                               // ...and along to the hardstanding
-  T('paving', -13.2, -2.6, HX0 - 1.0, L.ROAD.z0 - 0.15, 0.012, 0.007, 1);                                 // Nan's hardstanding (one car)
+  T('paving', -13.2, -2.6, HX0 - 1.0, L.ROAD.z0 - 0.15, 0.012, 0.007, 1);                                 // Nan's drive off Wave Road...
+  T('paving', -13.9, GAR.z1, HX0 - 0.2, -2.6, 0.012, 0.007, 1);                                            // ...carried on down the side of the house...
+  T('paving', HX0 - 0.2, GAR.z1, GAR.x1, HZ0 - 1.25, 0.012, 0.007, 1);                                      // ...and widened in front of both garages
   T('slab', HX1 - 0.2, HZ1 + 0.5, PLOT.gate1, HZ1 + 1.5, 0.012, 0.006, 1.2);
   T('slab', DSTEP.x1, DSTEP.z0, PLOT.gate1, DSTEP.z1, 0.012, 0.006, 1.2);                                  // off the deck steps
   T('slab', PLOT.gate0, L.HEDGE.z0 - 0.1, PLOT.gate1, DSTEP.z0, 0.012, 0.006, 1.2);                         // the side path, round to the back gate
   T('slab', HX0, HZ0 - 1.2, P1 - 0.2, HZ0 - 0.2, 0.012, 0.006, 1.2);                                      // round the back
-  car(k, -11.7, 0.6, -Math.PI / 2, 0xb8bcc2, true);
-  note('NAN\'S CAR (SHE ONLY DRIVES TO THE CLUBHOUSE. IT\'S 60 METRES.)', 0.6, 0.14, -11.7, 0.95, 2.66, 0, '#ffffff', '#2b2d30', 34);
-  k.label('JOAN 1', 0.5, 0.11, [-11.7, 0.62, 2.67], [0, 0, 0], { bg: '#f8d020', fg: '#111', border: null, size: 70 });
+  // Nan's car: a silver Nissan Micra on the drive in front of the garages, nose toward the road
+  { const cx = -12.05, cz = -4.35; nissan(scene, k, cx, cz, 0, { plate: 'JOAN 1' });
+    note('NAN\'S CAR (SHE ONLY DRIVES TO THE CLUBHOUSE. IT\'S 60 METRES.)', 0.6, 0.14, cx - 0.86, 1.0, cz - 0.4, -Math.PI / 2, '#ffffff', '#2b2d30', 34); }
   // the front lawn: a light-up reindeer pair, Santa's sign, little solar lights along the path
   reindeer(k, 3.6, 5.2, 0.6, 0.85); reindeer(k, 5.0, 5.4, -0.3, 0.7);
   k.blockers.push({ x0: 3.0, x1: 5.6, z0: 4.7, z1: 5.9, y1: 1.2 });
@@ -270,42 +280,50 @@ export function buildSandyBay(scene) {
   // the back garden: neat, a slab path, the washing line, TWO SHEDS in the back left-hand corner; hedges round it, the
   // long back hedge with a little gate at the side path (no home behind Nan: just the hedge, then the green)
   const hedge = (x0, z0, x1, z1, h = 1.1) => { T('hedge', x0, z0, x1, z1, h, h / 2, 1); k.blockers.push({ x0, x1, z0, z1, y1: h }); };
-  hedge(L.BOUNDS.x0, L.HEDGE.z0, PLOT.gate0, L.HEDGE.z1); hedge(PLOT.gate1, L.HEDGE.z0, L.CLUB.x0 - 0.3, L.HEDGE.z1);
-  hedge(PLOT.x0, L.HEDGE.z1, PLOT.x0 + 0.4, -2.6, 0.95); hedge(PLOT.x1 - 0.35, L.HEDGE.z1, PLOT.x1, -3.3, 0.95);     // down each side of her back garden
-  hedge(-11.6, L.PEBBLE.z1 + 0.15, -11.0, L.HEDGE.z0, 1.0);                                                           // the green's end (the next plot round)
+  hedge(PLOT.x0 + 0.4, L.HEDGE.z0, PLOT.gate0, L.HEDGE.z1); hedge(PLOT.gate1, L.HEDGE.z0, L.CLUB.x0 - 0.3, L.HEDGE.z1);
+  hedge(L.BOUNDS.x0, L.HEDGE_NEXT.z0, PLOT.x0, L.HEDGE_NEXT.z1);                                                       // her left-hand neighbour's back hedge
+  hedge(PLOT.x0, L.PEBBLE.z1 + 0.15, PLOT.x0 + 0.4, -2.6, 0.95); hedge(PLOT.x1 - 0.35, L.HEDGE.z1, PLOT.x1, -3.3, 0.95);     // down each side of her garden (the left one on along the green's end)
   { const gx = (PLOT.gate0 + PLOT.gate1) / 2, gz = (L.HEDGE.z0 + L.HEDGE.z1) / 2;                                   // the gate: two posts, a slatted grey gate swung open
     for (const x of [PLOT.gate0 + 0.05, PLOT.gate1 - 0.05]) k.box(0.1, 1.15, 0.1, x, 0.575, gz, 0x4a4c50, { block: true });
     for (let i = 0; i < 7; i++) k.box(0.13, 0.95, 0.03, PLOT.gate1 - 0.12, 0.55, gz - 0.12 - i * 0.15, 0x6a6c70);
     for (const y of [0.25, 0.85]) k.box(0.05, 0.07, 1.05, PLOT.gate1 - 0.1, y, gz - 0.6, 0x55575b); void gx;
     k.blockers.push({ x0: PLOT.gate1 - 0.16, x1: PLOT.gate1 - 0.06, z0: gz - 1.15, z1: gz - 0.05, y1: 1.0 }); }
-  // shed 1: an apex shed painted anthracite (a door with a little window, felt roof), right in the back left-hand corner
-  { const x0 = PLOT.x0 + 0.6, x1 = x0 + 2.5, z0 = L.HEDGE.z1 + 0.25, z1 = z0 + 2.0, eh = 1.85, ridge = 2.35, xm = (x0 + x1) / 2, SH = 0x3c4046;
-    R(x0, z0, x1, z1, eh, eh / 2, SH, { block: true });
-    for (let x = x0 + 0.12; x < x1; x += 0.14) k.box(0.012, eh - 0.1, 0.01, x, eh / 2, z1 + 0.004, 0x33363b);             // the boards
-    { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([x0, eh, z1, x1, eh, z1, xm, ridge, z1, x1, eh, z0, x0, eh, z0, xm, ridge, z0], 3)); g.computeVertexNormals(); k.parts.push(part(g, SH)); }
-    const half = (x1 - x0) / 2 + 0.15, slope = Math.atan2(ridge - eh, (x1 - x0) / 2), len = Math.hypot(half, (ridge - eh) * half / ((x1 - x0) / 2));
-    for (const s2 of [-1, 1]) k.box(len, 0.05, z1 - z0 + 0.3, xm + s2 * len / 2 * Math.cos(slope), (eh + ridge) / 2 + 0.03, (z0 + z1) / 2, 0x26282b, { rot: [0, 0, -s2 * slope] });
-    k.box(0.85, 1.65, 0.04, x1 - 0.75, 0.84, z1 + 0.02, 0x2f3237); k.box(0.45, 0.32, 0.045, x1 - 0.75, 1.3, z1 + 0.02, 0x7f97a8);
-    k.box(0.05, 0.05, 0.06, x1 - 0.42, 0.9, z1 + 0.05, 0xc8ccd0);
-    k.box(0.5, 0.35, 0.045, x0 + 0.65, 1.3, z1 + 0.02, 0x7f97a8); k.box(0.58, 0.05, 0.05, x0 + 0.65, 1.47, z1 + 0.03, 0xf5f5f3); k.box(0.58, 0.05, 0.05, x0 + 0.65, 1.12, z1 + 0.03, 0xf5f5f3);
-    k.box(0.5, 0.04, 0.5, x0 + 0.65, 0.02, z1 + 0.3, 0x8a8c88);
-    note("NAN'S SHED. GRANDAD'S TOOLS. TOUCH NOTHING.", 0.5, 0.14, x0 + 0.65, 0.95, z1 + 0.03, 0, '#fffbe8', '#222', 30); }
-  // shed 2: a smaller grey composite store beside it (lid and doors), the gas bottles' cover beside that
-  { const x0 = PLOT.x0 + 3.5, x1 = x0 + 2.0, z0 = L.HEDGE.z1 + 0.25, z1 = z0 + 1.35; R(x0, z0, x1, z1, 1.5, 0.75, 0x4a4c50, { block: true }); for (let x = x0 + 0.1; x < x1; x += 0.15) k.box(0.02, 1.4, 0.01, x, 0.72, z1 + 0.003, 0x3e4044); R(x0 - 0.05, z0 - 0.05, x1 + 0.05, z1 + 0.05, 0.05, 1.52, 0x2e3033);
-    k.box(0.02, 1.3, 0.02, (x0 + x1) / 2, 0.72, z1 + 0.012, 0x2a2c30);
-    R(x1 + 0.35, z0, x1 + 1.25, z0 + 0.6, 1.05, 0.525, 0x5a5c60, { block: true }); }
+  // TWO GARAGES in the back left-hand corner, side by side, their up-and-over doors facing the house and the drive:
+  // pale concrete-panel walls, an apex roof of grey sheets with the gable to the front, white ribbed doors, a little
+  // side window; the left one a single, the right one a bit wider. The gas bottles' cover beside them.
+  { const garage = (x0, x1, z0, z1, { eh = 2.2, rise = 0.55, door = 2.3 } = {}) => {
+      const xm = (x0 + x1) / 2, w = x1 - x0, d = z1 - z0, WALL = 0xd9d6cf, PANEL = 0xcfccc4, ROOFC = 0x6a6d70, DOOR = 0xf2f2ee;
+      R(x0, z0, x1, z1, eh, eh / 2, WALL, { block: true });
+      for (let z = z0 + 0.9; z < z1 - 0.1; z += 0.9) for (const x of [x0 - 0.005, x1 + 0.005]) k.box(0.012, eh - 0.06, 0.02, x, eh / 2, z, PANEL);      // the panel joints down the sides
+      for (const zf of [z0, z1]) { const g = new THREE.BufferGeometry(), zz = zf === z1 ? zf + 0.001 : zf - 0.001;
+        g.setAttribute('position', new THREE.Float32BufferAttribute(zf === z1 ? [x0, eh, zz, x1, eh, zz, xm, eh + rise, zz] : [x1, eh, zz, x0, eh, zz, xm, eh + rise, zz], 3)); g.computeVertexNormals(); k.parts.push(part(g, WALL)); }
+      const half = w / 2 + 0.12, slope = Math.atan2(rise, w / 2), len = half / Math.cos(slope);
+      for (const s2 of [-1, 1]) { k.box(len, 0.05, d + 0.3, xm + s2 * (len / 2) * Math.cos(slope), eh + rise / 2 + 0.035, (z0 + z1) / 2, ROOFC, { rot: [0, 0, -s2 * slope] });
+        for (let i = 1; i < 6; i++) k.box(0.02, 0.055, d + 0.3, xm + s2 * (len * i / 6) * Math.cos(slope), eh + rise * (1 - i / 6) + 0.05, (z0 + z1) / 2, 0x5c5f62, { rot: [0, 0, -s2 * slope] }); }      // the sheets' ribs
+      k.box(w + 0.05, 0.12, 0.06, xm, eh - 0.06, z1 + 0.03, 0xf0efea);                                                      // the fascia over the door
+      const dw = Math.min(door, w - 0.4); k.box(dw, 2.0, 0.05, xm, 1.0, z1 + 0.02, DOOR);                                    // the up-and-over door...
+      for (let y = 0.15; y < 2.0; y += 0.13) k.box(dw - 0.04, 0.025, 0.06, xm, y, z1 + 0.035, 0xdedcd6);                     // ...ribbed...
+      k.box(0.16, 0.06, 0.04, xm, 0.95, z1 + 0.07, 0x9a9ea2); k.box(0.04, 0.04, 0.03, xm, 0.95, z1 + 0.09, 0x2a2c2e);         // ...handle and lock
+      for (const x of [xm - dw / 2 - 0.04, xm + dw / 2 + 0.04]) k.box(0.06, 2.05, 0.06, x, 1.025, z1 + 0.02, 0xe8e6e0);
+      k.box(0.05, 0.55, 0.85, x1 + 0.01, 1.45, (z0 + z1) / 2 + 0.6, 0xf2f2ee); k.box(0.055, 0.45, 0.75, x1 + 0.012, 1.45, (z0 + z1) / 2 + 0.6, 0x7f97a8);   // a side window
+      R(x0 - 0.05, z1, x1 + 0.05, z1 + 0.15, 0.04, 0.02, 0xbab8b2);                                                         // the threshold
+    };
+    garage(GAR.x0, GAR.xm - 0.1, GAR.z0, GAR.z1, { door: 2.3 });
+    garage(GAR.xm + 0.1, GAR.x1, GAR.z0, GAR.z1, { door: 2.7, rise: 0.62 });
+    note("NAN'S GARAGE: CHRISTMAS DECS, GRANDAD'S TOOLS, 40 YEARS OF BISCUIT TINS. TOUCH NOTHING.", 0.62, 0.16, (GAR.x0 + GAR.xm) / 2, 1.55, GAR.z1 + 0.07, 0, '#fffbe8', '#222', 30);
+    R(GAR.x1 + 0.3, GAR.z0 + 0.1, GAR.x1 + 1.2, GAR.z0 + 0.7, 1.05, 0.525, 0x5a5c60, { block: true }); }
   { const x = 0.5, z = -6.0; k.cyl(0.05, 0.05, 1.8, x, 0.9, z, 0xc8ccd0, 8); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.3; k.box(1.3, 0.025, 0.025, x + Math.cos(a) * 0.65, 1.75, z + Math.sin(a) * 0.65, 0xc8ccd0, { rot: [0, -a, 0] }); } k.blockers.push({ x0: x - 0.1, x1: x + 0.1, z0: z - 0.1, z1: z + 0.1, y1: 1.8 }); }
   // a few neat round bushes and a cordyline or two along the plot's edges (Canvey's palm trees)
   const cordyline = (x, z, h = 1.6) => { k.cyl(0.07, 0.1, h, x, h / 2, z, 0x6a5440, 6); for (let i = 0; i < 16; i++) { const a = i * 2.4, e = 0.2 + (i % 4) * 0.35; const g = new THREE.ConeGeometry(0.035, 0.75, 3); g.translate(0, 0.37, 0); g.rotateZ(e); g.rotateY(a); k.parts.push(part(g, i % 2 ? 0x4a6a2a : 0x5a7a34, [x, h, z])); } k.blockers.push({ x0: x - 0.15, x1: x + 0.15, z0: z - 0.15, z1: z + 0.15, y1: h + 0.5 }); };
   cordyline(-9.8, 4.2); cordyline(9.9, 4.6, 1.9); cordyline(22.0, 6.6, 2.1); cordyline(-15.0, 4.5, 1.7);
-  for (const [x, z, r] of [[-9.6, -4.0, 0.45], [-8.2, 3.6, 0.35], [8.7, 3.7, 0.35], [-4.5, -3.7, 0.3], [1.5, -3.6, 0.3]]) { k.parts.push(part(new THREE.IcosahedronGeometry(r, 1), 0x3a6a2a, [x, r * 0.8, z], [0, 0, 0], [1.2, 0.85, 1.2])); k.blockers.push({ x0: x - r, x1: x + r, z0: z - r, z1: z + r, y1: r * 1.5 }); }
+  for (const [x, z, r] of [[-8.2, 3.6, 0.35], [8.7, 3.7, 0.35], [-4.5, -3.7, 0.3], [1.5, -3.6, 0.3]]) { k.parts.push(part(new THREE.IcosahedronGeometry(r, 1), 0x3a6a2a, [x, r * 0.8, z], [0, 0, 0], [1.2, 0.85, 1.2])); k.blockers.push({ x0: x - r, x1: x + r, z0: z - r, z1: z + r, y1: r * 1.5 }); }
   // THE GREEN behind Nan's hedge: clear grass along Pebble Road, a bench at its far end, a tree, the green's own sign
   { const bx = LAWN.x1 + 0.5, bz = -15.0; for (const s of [-1, 1]) k.box(0.5, 0.45, 0.06, bx, 0.23, bz + s * 0.8, 0x1e1f21); for (let i = 0; i < 4; i++) k.box(0.1, 0.03, 1.7, bx - 0.15 + i * 0.12, 0.46, bz, 0x2e2f31);
     k.blockers.push({ x0: bx - 0.3, x1: bx + 0.3, z0: bz - 0.85, z1: bz + 0.85, y1: 0.9 }); k.seats.push({ x: bx, z: bz - 0.4, yaw: -Math.PI / 2, h: 0.47 }, { x: bx, z: bz + 0.4, yaw: -Math.PI / 2, h: 0.47 });
     { const sx = PLOT.gate1 + 1.4, sz = L.HEDGE.z0 - 0.35, tex = TX.parkSignTex(['The Green', 'NO BALL GAMES. (FAMILY FLINGING: ASK JOAN.)'], { bg: '#4a4e55' });   // just through the gate
       for (const d of [-1, 1]) k.label('green', 1.2, 0.4, [sx, 1.0, sz + d * 0.03], [0, d > 0 ? 0 : Math.PI, 0], { tex });
       for (const x of [sx - 0.45, sx + 0.45]) k.box(0.05, 1.0, 0.05, x, 0.5, sz, 0x26282a); k.blockers.push({ x0: sx - 0.6, x1: sx + 0.6, z0: sz - 0.1, z1: sz + 0.1, y1: 1.2 }); }
-    const tx = LAWN.x1 + 1.6, tz = -11.2;
+    const tx = LAWN.x1 + 1.6, tz = L.HEDGE.z0 - 1.4;
     k.cyl(0.12, 0.18, 2.4, tx, 1.2, tz, 0x7a6a5a, 7); k.parts.push(part(new THREE.IcosahedronGeometry(1.4, 1), 0x4a6a32, [tx, 3.2, tz], [0, 0, 0], [1, 1.1, 1])); k.blockers.push({ x0: tx - 0.2, x1: tx + 0.2, z0: tz - 0.2, z1: tz + 0.2, y1: 3 }); }
 
   // ======================================================== INSIDE (built at floor level, lifted on to the floor)
@@ -344,7 +362,7 @@ export function buildSandyBay(scene) {
     wall('x', 1.0, XI0, -7.35, [], PAINT.bed); wall('z', -7.35, 1.0, ZI1, [[1.4, 2.45]], PAINT.bed);
     // tiles in the bathrooms (beige marble effect), the bath end and the en-suite
     T('marbleB', -5.6, ZI0, -5.59, -0.65, IH, IH / 2, 1); T('marbleB', -5.59, ZI0 + 0.0, -4.3, ZI0 + 0.01, IH, IH / 2, 1); T('marbleB', -4.31, ZI0, -4.3, -0.65, IH, IH / 2, 1);
-    T('marbleB', XI0, ZI1 - 0.01, -7.4, ZI1, IH, IH / 2, 1); T('marbleB', XI0, 1.05, XI0 + 0.01, ZI1, IH, IH / 2, 1); T('marbleB', XI0, 1.05, -7.4, 1.06, IH, IH / 2, 1); T('marbleB', -7.41, 1.05, -7.4, ZI1, IH, IH / 2, 1);
+    T('marbleB', XI0, ZI1 - 0.01, -7.4, ZI1, IH, IH / 2, 1); T('marbleB', XI0, 1.05, XI0 + 0.01, ZI1, IH, IH / 2, 1); T('marbleB', XI0, 1.05, -7.4, 1.06, IH, IH / 2, 1); T('marbleB', -7.41, 1.05, -7.4, 1.4, IH, IH / 2, 1); T('marbleB', -7.41, 2.45, -7.4, ZI1, IH, IH / 2, 1); T('marbleB', -7.41, 1.4, -7.4, 2.45, IH - 2.05, (IH + 2.05) / 2, 1);      // (not across the en-suite's doorway)
     // ---- ceilings: flat over the bedroom wing; vaulted (white tongue and groove) over the kitchen and lounge, an oak beam
     { const m = new THREE.Mesh(new THREE.PlaneGeometry(P2 - XI0, ZI1 - ZI0), new THREE.MeshLambertMaterial({ color: 0xf3f0e8, emissive: 0x2a2824 })); m.rotation.x = Math.PI / 2; m.position.set((XI0 + P2) / 2, IH, 0); scene.add(m); }
     for (const s of [-1, 1]) { const x0 = P2, x1 = XI1, za = s * 2.95, g = new THREE.BufferGeometry(), sl = Math.hypot(2.95, VAULT - IH);
@@ -563,8 +581,9 @@ export function buildSandyBay(scene) {
       fam('x', ZI1, 0.3, 1.95, 0.5, 0.4, -1, ['karen', 'lisa'], 'studio', 'Karen & Lisa · already arguing');
       F.radiator(k, 'x', ZI1, 2.1, 1.6, -1, { y: 0.36, h: 0.4 }); }
     // the glazed double doors (lounge and hall), open
-    for (const hz of [-2.05, -0.45]) F.openDoor(k, P1 - 0.08, hz, true, -1, 0.78, { glazed: glassQuad });
-    for (const [hz] of [[0.35], [1.95]]) F.openDoor(k, P2 + 0.08, hz, true, 1, 0.78, { glazed: glassQuad });
+    // (swung right back, almost flat against the kitchen side of the wall, so nothing sticks out into the way)
+    for (const [hz, turn] of [[-2.05, -1.48], [-0.45, 1.48]]) F.openDoor(k, P1 - 0.08, hz, true, -1, 0.78, { glazed: glassQuad, turn });
+    for (const [hz, turn] of [[0.35, 1.48], [1.95, -1.48]]) F.openDoor(k, P2 + 0.08, hz, true, 1, 0.78, { glazed: glassQuad, turn });
 
     // ================================================ THE ENTRANCE HALL (x -2.45 .. -0.65), the study, the wing
     { // coat hooks with coats, the shoe bench (Jimmy's size 13s), a mirror, the console with the cards Michael sorted
@@ -591,11 +610,11 @@ export function buildSandyBay(scene) {
     // bedroom 2: a double bed, a bedside, a mirrored wardrobe
     { F.bed(k, -4.62, 2.16, Math.PI / 2, { w: 1.2, l: 1.9 }); F.bedside(k, -5.33, 1.15, Math.PI / 2); F.mirrorWardrobe(k, 'z', -2.5, 1.75, 2.9, -1, { depth: 0.5 });
       note("THE SPARE ROOM: SOPHIE'S (IF SHE MISSES THE 6:42)", 0.4, 0.14, -4.65, 1.9, ZI1 - 0.01, Math.PI, '#ffffff', '#1a3a8a', 30); F.radiator(k, 'x', ZI1, -4.0, 1.0, -1); }
-    // the utility: washing machine + dryer, a sink unit, the back door (shut)
+    // the utility: washing machine + dryer, a sink unit, the back door (open, flat against the outside wall)
     { F.baseRun(k, 'z', -4.2, ZI0 + 0.05, -1.2, 1, { skip: [[ZI0, -1.6]] });
       for (const [z, c] of [[-2.55, 0x9ab0c0], [-1.95, 0x3a3c40]]) { k.box(0.02, 0.82, 0.58, -3.6, 0.45, z, 0xf4f4f2); k.parts.push(part(cyl(0.2, 0.2, 0.02, 16), c, [-3.585, 0.48, z], [0, 0, Math.PI / 2])); }
-      k.box(0.85, 2.05, 0.1, -2.975, 1.03, ZI0 - 0.07, C.ANTH); k.box(0.5, 0.6, 0.11, -2.975, 1.55, ZI0 - 0.07, 0xdfe5e8); k.box(0.12, 0.02, 0.03, -2.65, 1.0, ZI0 + 0.0, 0xc8ccd0);
-      note('THE UTILITY: WHERE THE CHRISTMAS TINS ARE HIDDEN (TOP SHELF. JIMMY CAN REACH IT. DON\'T TELL HIM.)', 0.5, 0.18, -3.0, 1.75, -0.66, Math.PI, '#ffffff', '#4a4e55', 28); }
+      F.openDoor(k, -3.4, HZ0 - 0.05, true, -1, 0.85, { col: C.ANTH, lever: 0xc8ccd0 });
+      note('THE UTILITY: WHERE THE CHRISTMAS TINS ARE HIDDEN (TOP SHELF. JIMMY CAN REACH IT. DON\'T TELL HIM.)', 0.5, 0.18, -3.9, 1.75, -0.66, Math.PI, '#ffffff', '#4a4e55', 28); }
     // the bathroom: bath with shower + screen, vanity + LED mirror, toilet
     { F.bath(k, 'z', -5.6, ZI0 + 0.02, ZI0 + 1.72, 1); F.vanity(k, 'z', -4.3, -1.3, -1, { w: 0.6 }); F.toilet(k, 'x', ZI0, -4.65, 1); }
     // the master bedroom: the bed against the end wall, bedsides, the mirrored sliding wardrobes, the en-suite
@@ -605,8 +624,11 @@ export function buildSandyBay(scene) {
       note("NAN'S ROOM. THE PRESENTS ARE NOT UNDER THE BED. (THEY ARE.)", 0.42, 0.16, -6.2, 1.3, ZI0 + 0.012, 0, '#ffffff', '#4a4e55', 30);
       F.toilet(k, 'z', XI0, 1.6, 1); F.vanity(k, 'x', ZI1, -8.4, -1, { w: 0.55 });
       k.box(0.9, 2.0, 0.01, -7.85, 1.0, 1.1, 0xcfe6ee); }
-    // the inner doors (white panels, chrome levers), open
-    F.openDoor(k, -1.83, -0.62, false, -1, 1.0); F.openDoor(k, -3.6, 0.62, false, 1, 1.0); F.openDoor(k, -2.52, -0.62, false, -1, 1.0);
+    // the inner doors (white panels, chrome levers), all open, swung back as far as each room lets them: the spare
+    // room's flat to its wall, the study's back to its side wall, the utility's flat to the study wall, the bathroom's
+    // flat to the corridor wall (it opens out: the bath and vanity are behind it), the master's and en-suite's square
+    F.openDoor(k, -1.83, -0.62, false, -1, 1.0, { turn: 0.55 }); F.openDoor(k, -3.6, 0.62, false, 1, 1.0, { turn: -1.48 }); F.openDoor(k, -2.52, -0.62, false, -1, 1.0);
+    F.openDoor(k, -4.45, -0.53, true, 1, 0.88);
     F.openDoor(k, -5.65, -0.55, true, -1, 1.0); F.openDoor(k, -7.35, 1.4, true, 1, 1.0);
   });
   // the fire's flames flicker
@@ -704,7 +726,7 @@ export function buildSandyBay(scene) {
   room.tree = { x: TREE.x, z: TREE.z };
   room.drinks = DRINKS;
   room.lawn = LAWN;
-  room.gardenStart = { x: LAWN.x0 + 1.2, z: -15.8, yaw: -Math.PI / 2 };      // the green's left-hand end, flinging down its length
+  room.gardenStart = { x: LAWN.x0 + 1.2, z: -18.6, yaw: -Math.PI / 2 };      // the green's left-hand end, flinging down its length
   room.familyPhotos = photos;
   room.activities = [
     ...quizSeats.slice(0, 5).map(s => ({ x: s.x, z: s.z, yaw: s.yaw, pose: 'sit' })),

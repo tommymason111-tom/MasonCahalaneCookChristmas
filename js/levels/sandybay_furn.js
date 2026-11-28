@@ -134,18 +134,23 @@ export function radiator(k, axis, c, a, w, d, { y = 0.42, h = 0.5 } = {}) {
   B(w, h, 0.06, a, y, 0.06, 0xf4f4f2); for (let i = 1; i < Math.round(w / 0.08); i++) B(0.006, h - 0.04, 0.005, a - w / 2 + i * 0.08, y, 0.092, 0xdcdcd8);
   B(0.03, 0.06, 0.03, a + w / 2 + 0.02, y - h / 2 - 0.02, 0.05, CHROME);
 }
-// a white panel door (open, swung against a wall): from hinge (hx, hz), leaf along +-x / +-z, w wide
-export function openDoor(k, hx, hz, alongX, sign, w, { col = WHITE, h = 2.03, lever = CHROME, glazed = false } = {}) {
-  const cx = alongX ? hx + sign * w / 2 : hx, cz = alongX ? hz : hz + sign * w / 2;
+// a white panel door (open, swung back against a wall): from hinge (hx, hz), leaf along +-x / +-z, w wide. turn (radians,
+// about the hinge) swings it further round from there, so it can sit almost flat against a wall rather than stick out
+export function openDoor(k, hx, hz, alongX, sign, w, { col = WHITE, h = 2.03, lever = CHROME, glazed = false, turn = 0 } = {}) {
+  let dx = alongX ? sign : 0, dz = alongX ? 0 : sign;
+  if (turn) { const c = Math.cos(turn), s = Math.sin(turn); [dx, dz] = [dx * c + dz * s, -dx * s + dz * c]; }
+  const ry = Math.atan2(-dz, dx), nx = -dz, nz = dx;      // the leaf's own x runs from the hinge to the free edge; n = its face
+  const at = (u, n = 0) => [hx + dx * u + nx * n, hz + dz * u + nz * n];        // u along the leaf, n off its face
+  const B = (len, hh, t, u, y, cl, n = 0) => { const [x, z] = at(u, n); k.box(len, hh, t, x, y, z, cl, { rot: [0, ry, 0] }); };
   if (glazed) {       // a white frame round a big pane of glass (glazed = the level's glass-quad function)
-    const B = (ww, hh, a, y) => alongX ? k.box(ww, hh, 0.045, a, y, cz, col) : k.box(0.045, hh, ww, cx, y, a, col), m = alongX ? cx : cz;
-    B(w, 0.12, m, 0.06 + 0.1); B(w, 0.12, m, h - 0.06); B(0.1, h, m - w / 2 + 0.05, h / 2); B(0.1, h, m + w / 2 - 0.05, h / 2); B(w, 0.18, m, 0.09);
-    const a0 = m - w / 2 + 0.1, a1 = m + w / 2 - 0.1, y0 = 0.22, y1 = h - 0.12;
-    if (typeof glazed === 'function') alongX ? glazed([a0, y0, cz], [a1, y0, cz], [a1, y1, cz], [a0, y1, cz]) : glazed([cx, y0, a0], [cx, y0, a1], [cx, y1, a1], [cx, y1, a0]);
-  } else alongX ? k.box(w, h, 0.04, cx, h / 2, cz, col) : k.box(0.04, h, w, cx, h / 2, cz, col);
-  if (!glazed) for (const [py, ph] of [[0.55, 0.7], [1.45, 0.8]]) alongX ? k.box(w - 0.24, ph, 0.046, cx, py, cz, 0xeeeeec) : k.box(0.046, ph, w - 0.24, cx, py, cz, 0xeeeeec);
-  const ex = alongX ? hx + sign * (w - 0.08) : hx, ez = alongX ? hz : hz + sign * (w - 0.08);
-  for (const s of [-1, 1]) alongX ? k.box(0.12, 0.02, 0.02, ex - sign * 0.04, 1.02, ez + s * 0.04, lever) : k.box(0.02, 0.02, 0.12, ex + s * 0.04, 1.02, ez - sign * 0.04, lever);
+    B(w, 0.12, 0.045, w / 2, 0.16, col); B(w, 0.12, 0.045, w / 2, h - 0.06, col); B(0.1, h, 0.045, 0.05, h / 2, col); B(0.1, h, 0.045, w - 0.05, h / 2, col); B(w, 0.18, 0.045, w / 2, 0.09, col);
+    if (typeof glazed === 'function') { const [x0, z0] = at(0.1), [x1, z1] = at(w - 0.1), y0 = 0.22, y1 = h - 0.12; glazed([x0, y0, z0], [x1, y0, z1], [x1, y1, z1], [x0, y1, z0]); }
+  } else {
+    B(w, h, 0.04, w / 2, h / 2, col);
+    const pc = new THREE.Color(col).multiplyScalar(col === WHITE ? 0.97 : 1.25).getHex();      // (the raised panels: a shade off the door's own colour)
+    for (const [py, ph] of [[0.55, 0.7], [1.45, 0.8]]) B(w - 0.24, ph, 0.046, w / 2, py, pc);
+  }
+  for (const s2 of [-1, 1]) B(0.12, 0.02, 0.02, w - 0.12, 1.02, lever, s2 * 0.04);
 }
 // floor-length curtains (pleated) either side of an opening on a chrome pole. axis 'x' = on a wall along x at z = c,
 // d = the room side; a0..a1 = the opening

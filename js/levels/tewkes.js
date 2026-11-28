@@ -20,6 +20,7 @@ import { sofa, unitFronts, wheelieBin, fenceTex } from './furniture.js';
 import { leafyBall, terrace } from './outdoor.js';
 import { part, sph, merge, vcLambert } from '../geo.js';
 import { photoSlot } from '../portraits.js';
+import { openDoor } from './sandybay_furn.js';
 import * as TX from './tewkes_tex.js';
 import * as BGU from 'three/addons/utils/BufferGeometryUtils.js';
 import { Quads, FairyLights, christmasTree, present, paperChain, tinsel, car, lampPost, gnome, reindeer, stick, rnd, BULBS } from './tewkes_props.js';
@@ -194,6 +195,10 @@ export function buildTewkesRoad(scene) {
   wall('x', 3.4, HX0, 1.3, 0, CEIL, [[-2.25, -1.15, 0, 2.05]]);                         // front room | back room (the door's propped open)
   wall('z', 1.3, HZB, HZF, 0, CEIL, [[1.0, 2.0, 0, 2.05], [6.25, 7.3, 0, 2.05]]);       // rooms | hall
   wall('z', 2.7, 0.4, 3.4, 0, CEIL); wall('x', 0.4, 2.64, HX1, 0, CEIL);                  // the downstairs loo
+  // the inside doors, all open, swung right back flat against the wall (white panels, brass knobs)
+  openDoor(k, -2.25, 3.4 + 0.085, true, -1, 0.8, { col: WHITE, lever: BRASS });             // front room | back room
+  openDoor(k, 1.3 - 0.085, 1.0, false, -1, 0.8, { col: WHITE, lever: BRASS });              // back room | hall
+  openDoor(k, 1.3 - 0.085, 6.25, false, -1, 0.85, { col: WHITE, lever: BRASS });            // front room | hall (the height-marks frame)
   arch('x', 3.4, -2.25, -1.15); arch('z', 1.3, 1.0, 2.0); arch('z', 1.3, 6.25, 7.3); arch('x', HZB, 1.75, 2.8, 1.95, WT); arch('x', HZF, 2.2, 3.2, 2.1, WT, WHITE);
   // ceilings (an open stairwell over the stairs, up to the landing)
   for (const [x0, z0, x1, z1, y] of [[HX0, HZB, 2.75, HZF, CEIL], [2.75, HZB, HX1, 2.5, CEIL], [2.75, 6.9, HX1, HZF, CEIL], [-2.6, HZF, 0.2, 9.35, 2.32], [KX0, KZ0, HX1, HZB, KCEIL], [2.75, 2.5, HX1, 6.9, 5.0]])
@@ -586,7 +591,7 @@ export function buildTewkesRoad(scene) {
   k.cyl(0.13, 0.13, 0.03, kX0 + 0.01, 2.0, -3.0, 0xc62828, 18); k.label('clock', 0.22, 0.22, [kX0 + 0.03, 2.0, -3.0], [0, PI / 2, 0], { tex: TX.clockFaceTex(false) });
   arch('x', KZ0, 2.05, 3.05, 2.05, WT, WHITE);
   // the back door (open to the garden), a pedal bin, the strip light
-  { k.box(1.0, 2.05, 0.05, 2.89, 1.025, KZ0 - 0.6, 0xf4f4f0, { rot: [0, -1.25, 0] }); Q.add(glassMat, 0.6, 0.8, 2.89 - 0.03 * 0.95, 1.5, KZ0 - 0.6 + 0.03 * 0.32, -1.25); }
+  { openDoor(k, 2.05, KZ0 - WT / 2 - 0.04, true, -1, 0.85, { col: 0xf4f4f0, lever: 0xc8ccd0, h: 2.04 }); Q.add(glassMat, 0.5, 0.8, 1.625, 1.5, KZ0 - WT / 2 - 0.066, PI); }      // (flat against the wall outside, out of the doorway)
   k.cyl(0.14, 0.13, 0.42, 1.2, 0.21, -1.85, 0xf4f4f4, 14, { block: true }); k.cyl(0.145, 0.145, 0.03, 1.2, 0.43, -1.85, 0xd8d8d8, 14);
   k.box(1.2, 0.06, 0.12, 1.4, KCEIL - 0.04, -3.4, 0xf4f4f4); k.box(1.15, 0.04, 0.06, 1.4, KCEIL - 0.09, -3.4, 0xf8fcff); k.halo(1.4, KCEIL - 0.1, -3.4, 0.8, 0xe8f0ff);
   k.light(1.4, 2.1, -3.4, 0xf4f4ff, 2.6, 6);

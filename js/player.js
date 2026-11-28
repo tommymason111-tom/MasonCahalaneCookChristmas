@@ -574,6 +574,12 @@ export class Player {
     if (this.flatBody) { const p = this.flatAnchorPos(); this.flatBody.position.set(p.x, p.y, p.z); }
     // the eat swing: grip moves from its rest spot to just under the nose and back
     const g = this.flatGrip, f = this.flatHolder;
+    // where the hand rests: low on the right, but kept inside the picture on a narrow screen (a phone held upright
+    // only sees ~13 cm either side at arm's length, so the old fixed spot put the hand, and half of whatever was in
+    // it, off the edge). A big thing (a pudding, a turkey) sits a little further in so all of it shows.
+    const cam = this.camera, halfH = 0.4 * Math.tan(cam.fov * Math.PI / 360), halfW = halfH * cam.aspect;
+    const big = f.held ? Math.min(0.1, Math.max(0, (f.held.radius || 0.04) - 0.04)) : 0;
+    const RX = Math.max(0.05, Math.min(0.18, halfW * 0.6 - big)), RY = -Math.min(0.21, halfH * (cam.aspect < 1 ? 0.5 : 0.66) - big * 0.5);      // (upright phone: a bit higher, clear of the buttons)
     let k = 0;
     if (this.flatEatT >= 0) {
       this.flatEatT += dt;
@@ -581,10 +587,10 @@ export class Player {
       const dur = drink ? 1.9 : 0.6;
       k = this.flatEatT < 0.25 ? this.flatEatT / 0.25 : this.flatEatT > dur - 0.25 ? Math.max(0, (dur - this.flatEatT) / 0.25) : 1;
       if (this.flatEatT >= dur || !f.held) { this.flatEatT = -1; k = 0; }
-      g.position.set(0.18 - 0.18 * k, -0.21 + 0.13 * k, -0.4 + 0.26 * k);
+      g.position.set(RX - RX * k, RY + 0.13 * k, -0.4 + 0.26 * k);
       g.rotation.set(FLAT_REST + (drink ? 1.7 : 0.2) * k, 0.3 * (1 - k), 0);
     } else { const P = this.pump || 0;      // (running: the hand pumps with the arm, forward and up, back and down, in time with the steps)
-      g.position.set(0.18 - 0.012 * P * this.pumpRun, -0.21 + Math.sin(t * 2) * 0.004 + 0.035 * P * this.pumpRun, -0.4 - 0.06 * P * this.pumpRun); g.rotation.set(FLAT_REST + 0.25 * P * this.pumpRun, 0.3, 0); }
+      g.position.set(RX - 0.012 * P * this.pumpRun, RY + Math.sin(t * 2) * 0.004 + 0.035 * P * this.pumpRun, -0.4 - 0.06 * P * this.pumpRun); g.rotation.set(FLAT_REST + 0.25 * P * this.pumpRun, 0.3, 0); }
     if (this.flatHandModel.ready) { const c = f.held ? holdTransform(f.held.type, 'right').curl : 0.35; for (const n in this.flatHandModel.curl) this.flatHandModel.curl[n] += (c - this.flatHandModel.curl[n]) * 0.3; this.flatHandModel.update(); }
     if (f.held && f.held.dead) f.held = null;
   }

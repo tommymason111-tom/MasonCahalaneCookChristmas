@@ -592,7 +592,7 @@ export class ItemManager {
           for (const l of lv) { if (d >= l.distance) pick = l.object; } for (const l of lv) l.object.visible = false; m = pick; }
         else if (c.isMesh && !c.isInstancedMesh) m = c;
         if (!m || m.material !== vcLambert || !m.geometry) { if (c.isLOD && m) m.visible = true; continue; }      // (any other kind of material: drawn as it was)
-        m.visible = false; m.updateWorldMatrix(true, false);
+        m.layers.set(31); m.updateWorldMatrix(true, false);      // (not drawn itself: moved to a layer no camera draws. It used to be hidden, which the check above then took for 'hidden for a moment', so a plain-shaped food (no near/far versions: the pudding, the selection box...) vanished for good after the first picture, on the table and in your hand)
         let b = B.get(m.geometry); if (!b) B.set(m.geometry, b = { im: null, n: 0, cap: 0 });
         if (b.n >= b.cap) this.growBatch(b, m.geometry, Math.max(8, b.cap * 2));
         b.im.setMatrixAt(b.n++, m.matrixWorld);

@@ -238,7 +238,8 @@ function updateTouchUI() {
   if (!eat) return;
   const label = !held ? 'EAT' : held.def.cracker ? 'PULL' : held.def.drink ? 'DRINK' : held.def.prop ? '—' : 'EAT';
   if (eat.textContent !== label) eat.textContent = label;
-  eat.classList.toggle('off', !held || (held.def.prop && !held.def.cracker));
+  const off = !held || (!!held.def.prop && !held.def.cracker);      // (a real true/false: toggle('off', undefined) flips the class every frame, which made EAT flicker)
+  if (eat.classList.contains('off') !== off) eat.classList.toggle('off', off);
   document.getElementById('btn-throw')?.classList.toggle('off', !held);
 }
 // keyboard on a computer: WASD / arrows to walk (touch.js), E eat, F / space throw, mouse drag to look
