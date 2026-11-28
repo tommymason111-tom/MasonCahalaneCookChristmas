@@ -13,78 +13,196 @@
 }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#5a0f18">
+  <meta name="theme-color" content="#0b1430">
   <title>Christmas Day at Nan's</title>
   <style>
-    :root { --red: #b3121f; --deep: #5a0f18; --gold: #ffd76a; --green: #1e6a34; --cream: #fff6e6; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #1a0508; color: #fff; font-family: Arial, sans-serif; }
+    /* "Christmas night at Nan's": a deep winter-night sky, frosted-glass cards, warm window-light gold, cranberry and
+       pine accents, rounded type. (Its own look: not the Boxing Day quiz's red-and-gold panels.) */
+    :root { --night: #0b1430; --night2: #16295a; --pine: #14634a; --pine2: #1f8a62; --cran: #e8405a; --cran2: #b8223d; --gold: #ffd27a; --snow: #f4f8ff;
+      --glass: rgba(255,255,255,0.075); --glass2: rgba(255,255,255,0.13); --line: rgba(255,255,255,0.16); --muted: rgba(232,240,255,0.72);
+      --red: #e8405a; --deep: #0b1430; --green: #1f8a62; --cream: #f4f8ff;
+      --fh: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Trebuchet MS", system-ui, sans-serif;
+      --fb: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); color: var(--snow); font-family: var(--fb); }
     html, body, button, #touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     #app canvas { display: block; touch-action: none; }
     button { font-family: inherit; cursor: pointer; }
     [hidden] { display: none !important; }
 
-    /* ---------------- menus ---------------- */
-    #menu, #loadscreen, #ready-screen { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; overflow-y: auto;
-      background: radial-gradient(ellipse at 50% 30%, #8a1a26 0%, #4a0b12 55%, #1a0508 100%); }
-    #ready-screen { background: linear-gradient(180deg, rgba(26,5,8,0.15), rgba(26,5,8,0.75)); }
-    #snow { position: fixed; inset: 0; pointer-events: none; z-index: 51; }
-    .lights { position: fixed; top: 0; left: 0; right: 0; height: 46px; z-index: 52; pointer-events: none; background:
-      radial-gradient(circle at 20px 26px, #ff3b3b 6px, transparent 7px) 0 0 / 80px 46px repeat-x, radial-gradient(circle at 40px 32px, #ffd400 6px, transparent 7px) 0 0 / 80px 46px repeat-x,
-      radial-gradient(circle at 60px 26px, #2aff7a 6px, transparent 7px) 0 0 / 80px 46px repeat-x, radial-gradient(circle at 80px 32px, #3ab0ff 6px, transparent 7px) 0 0 / 80px 46px repeat-x; filter: drop-shadow(0 0 6px rgba(255,220,120,0.8)); animation: twinkle 1.6s steps(2) infinite; }
-    @keyframes twinkle { 50% { filter: drop-shadow(0 0 2px rgba(255,220,120,0.4)) brightness(0.7); } }
-    .scr { position: relative; z-index: 53; width: min(960px, 100%); box-sizing: border-box; padding: 64px 16px 28px; text-align: center; }
-    .title-small { font: italic 700 clamp(20px, 4.5vw, 34px) Georgia, serif; color: var(--cream); text-shadow: 0 3px 0 rgba(0,0,0,0.4); }
-    .title-big { font: 900 clamp(40px, 10vw, 96px)/0.95 Georgia, serif; margin: 6px 0; background: linear-gradient(180deg, #fff3c4, #ffd76a 45%, #c8901a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 #3a0508); }
-    .title-sub { font: 900 clamp(14px, 3vw, 22px) Georgia, serif; letter-spacing: 0.35em; color: var(--gold); margin-bottom: 26px; }
-    .panel { background: linear-gradient(180deg, #c8222e, #8a0f1a); border: 3px solid var(--gold); border-radius: 22px; padding: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.25); position: relative; }
-    .panel::before { content: ''; position: absolute; left: -3px; right: -3px; top: -14px; height: 22px; background: radial-gradient(circle at 12px 14px, #fff 10px, transparent 11px) 0 0 / 24px 22px repeat-x; }
-    .big { display: inline-flex; align-items: center; gap: 12px; padding: 14px 30px; border-radius: 18px; border: 3px solid var(--gold); background: linear-gradient(180deg, #e12d3a, #a50f1c); color: #fff; font: 900 22px "Arial Black", Arial; box-shadow: 0 6px 0 #4a0710; }
-    .big:active { transform: translateY(3px); box-shadow: 0 3px 0 #4a0710; }
-    .big.green { background: linear-gradient(180deg, #2e9a4e, #17602e); box-shadow: 0 6px 0 #0a3318; }
-    .tag { color: rgba(255,246,230,0.8); font-size: 13px; margin-top: 14px; }
-    h2.sh { font: 900 clamp(24px, 5vw, 38px) Georgia, serif; color: var(--gold); margin: 0 0 14px; text-shadow: 0 3px 0 #3a0508; }
-    .grp { margin-bottom: 14px; } .grp h3 { margin: 0 0 8px; font: 900 15px "Arial Black", Arial; color: #fff; letter-spacing: 0.08em; display: inline-block; padding: 4px 14px; border-radius: 12px; background: var(--c); }
-    .cards { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-    .pc { width: 132px; padding: 10px 6px 8px; border-radius: 16px; border: 3px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.25); color: #fff; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .pc .em { font-size: 34px; } .pc b { font: 900 17px "Arial Black", Arial; } .pc i { font-style: normal; font-size: 11px; opacity: 0.8; line-height: 1.25; min-height: 28px; }
-    .pc.sel { border-color: var(--gold); background: var(--c); box-shadow: 0 0 0 3px rgba(255,215,106,0.4), 0 0 24px var(--c); transform: translateY(-2px); }
-    #who-blurb { min-height: 40px; margin: 6px auto 14px; max-width: 560px; color: var(--cream); font-style: italic; }
-    .bcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .bc { text-align: left; padding: 14px; border-radius: 16px; border: 3px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.25); color: #fff; display: grid; grid-template-columns: 52px 1fr; column-gap: 10px; align-items: center; }
-    .bc .em { font-size: 40px; grid-row: span 3; text-align: center; } .bc b { font: 900 17px "Arial Black", Arial; } .bc u { text-decoration: none; color: var(--gold); font-weight: 700; font-size: 13px; } .bc i { font-style: normal; font-size: 13px; opacity: 0.85; line-height: 1.35; }
-    .bc.sel { border-color: var(--gold); background: linear-gradient(180deg, #2e9a4e, #17602e); box-shadow: 0 0 22px rgba(255,215,106,0.5); }
+    /* ---------------- the screens before the game (menu, loading, ready) ---------------- */
+    #menu, #loadscreen, #ready-screen { position: fixed; inset: 0; z-index: 50; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+      background: radial-gradient(130% 70% at 50% -5%, #2b4f93 0%, #16295a 38%, #0b1430 72%, #060b1c 100%); }
+    #ready-screen { background: linear-gradient(180deg, rgba(6,11,28,0.25), rgba(6,11,28,0.85)); }
+    /* snowy hills along the bottom of every screen */
+    #menu::after, #loadscreen::after { content: ''; position: fixed; left: -10%; right: -10%; bottom: -1px; height: 22vh; pointer-events: none; z-index: 0;
+      background: radial-gradient(60% 100% at 18% 100%, rgba(232,242,255,0.16) 0 60%, transparent 61%), radial-gradient(70% 90% at 78% 100%, rgba(232,242,255,0.11) 0 60%, transparent 61%); }
+    /* snow: three layers drifting down. Moved only with transform, which the browser animates off the main thread,
+       so it keeps falling even while the game is busy building the house (the old canvas snow froze then). */
+    #snowfx { position: fixed; inset: 0; z-index: 51; pointer-events: none; overflow: hidden; }
+    body.playing #snowfx { display: none; }
+    #snowfx i { position: absolute; left: -20px; right: -20px; top: -720px; height: calc(100% + 720px); will-change: transform; animation: snowfall linear infinite; }
+    #snowfx .s1 { background-image: radial-gradient(circle, rgba(255,255,255,0.95) 0 1.6px, transparent 2.2px), radial-gradient(circle, rgba(255,255,255,0.8) 0 1.2px, transparent 1.8px);
+      background-size: 180px 180px, 180px 180px; background-position: 20px 30px, 110px 120px; animation-duration: 14s; }
+    #snowfx .s2 { background-image: radial-gradient(circle, rgba(255,255,255,0.9) 0 2.4px, transparent 3px), radial-gradient(circle, rgba(255,255,255,0.75) 0 2px, transparent 2.6px);
+      background-size: 240px 240px, 240px 240px; background-position: 60px 40px, 170px 160px; animation-duration: 10s; }
+    #snowfx .s3 { background-image: radial-gradient(circle, rgba(255,255,255,0.85) 0 3.4px, transparent 4.2px); background-size: 360px 360px; background-position: 140px 90px; animation-duration: 7s; filter: blur(0.6px); }
+    #snowfx b { position: absolute; inset: 0; will-change: transform; animation: snowsway 6s ease-in-out infinite alternate; }
+    @keyframes snowfall { to { transform: translate3d(0, 720px, 0); } }
+    @keyframes snowsway { from { transform: translate3d(-14px, 0, 0); } to { transform: translate3d(14px, 0, 0); } }
+    /* fairy lights strung across the top: two sets of bulbs fading in turn (opacity: smooth, never freezes) */
+    .lights { position: fixed; top: 0; left: 0; right: 0; height: calc(env(safe-area-inset-top) + 34px); z-index: 52; pointer-events: none;
+      background: linear-gradient(180deg, rgba(6,11,28,0.85), rgba(6,11,28,0)); }
+    .lights::before, .lights::after { content: ''; position: absolute; left: 0; right: 0; bottom: 2px; height: 26px; will-change: opacity; }
+    .lights::before { background: radial-gradient(circle at 18px 12px, #ff5a6e 0 4.5px, transparent 5px) 0 0 / 72px 26px repeat-x, radial-gradient(circle at 54px 16px, #5ad6ff 0 4.5px, transparent 5px) 0 0 / 72px 26px repeat-x;
+      filter: drop-shadow(0 0 5px rgba(255,190,120,0.9)); animation: bulbs 1.8s ease-in-out infinite alternate; }
+    .lights::after { background: radial-gradient(circle at 36px 15px, #ffd27a 0 4.5px, transparent 5px) 0 0 / 72px 26px repeat-x, radial-gradient(circle at 0px 12px, #6cf09a 0 4.5px, transparent 5px) 0 0 / 72px 26px repeat-x;
+      filter: drop-shadow(0 0 5px rgba(255,220,140,0.9)); animation: bulbs 1.8s ease-in-out infinite alternate-reverse; }
+    @keyframes bulbs { from { opacity: 1; } to { opacity: 0.25; } }
+
+    /* a screen: always scrolls if it's taller than the window (nothing gets cut off top or bottom), kept clear of the
+       notch and the home bar */
+    .scr { position: relative; z-index: 53; width: min(820px, 100%); min-height: 100%; box-sizing: border-box; margin: 0 auto; display: flex; flex-direction: column; justify-content: center;
+      padding: calc(env(safe-area-inset-top) + 52px) calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 20px) calc(env(safe-area-inset-left) + 16px); text-align: center; }
+    .scr.top { justify-content: flex-start; }
+    h2.sh { font: 800 clamp(26px, 6.4vw, 40px)/1.1 var(--fh); margin: 0 0 4px; color: #fff; letter-spacing: -0.01em; text-shadow: 0 2px 18px rgba(120,170,255,0.35); }
+    .sub { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+    .kicker { display: inline-flex; align-items: center; gap: 8px; margin: 0 auto 10px; padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); font: 700 12px var(--fb); letter-spacing: 0.12em; color: var(--gold); text-transform: uppercase; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05)); border: 1px solid var(--line); border-radius: 26px; padding: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+
+    /* the title */
+    .title-wrap { position: relative; margin-bottom: 22px; }
+    .title-house { font-size: 64px; line-height: 1; filter: drop-shadow(0 6px 20px rgba(255,200,110,0.55)); animation: glowbob 3.2s ease-in-out infinite alternate; display: inline-block; will-change: transform; }
+    @keyframes glowbob { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-8px) rotate(2deg); } }
+    .title-small { font: 700 clamp(13px, 3.4vw, 16px) var(--fb); color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 10px; }
+    .title-big { font: 900 clamp(46px, 13vw, 104px)/0.92 var(--fh); margin: 10px 0 6px; letter-spacing: -0.02em;
+      background: linear-gradient(180deg, #ffffff 0%, #fff4d6 45%, #ffcf6b 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 26px rgba(255,190,90,0.35)); }
+    .title-big em { font-style: normal; display: block; font-size: 0.62em; background: linear-gradient(180deg, #ff8c9b, #e8405a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .title-sub { font: 800 13px var(--fb); letter-spacing: 0.4em; color: var(--gold); opacity: 0.9; }
+    .panel { max-width: 460px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+    .panel.card { padding: 22px; }
+
+    /* buttons */
+    .big { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; padding: 0 30px; border-radius: 999px; border: 0; color: #fff;
+      font: 800 19px var(--fh); letter-spacing: 0.02em; background: linear-gradient(180deg, #ff6276, #d6264a); box-shadow: 0 10px 28px rgba(232,64,90,0.45), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 rgba(0,0,0,0.18);
+      transition: transform 0.12s, box-shadow 0.12s, filter 0.12s; }
+    .big:active { transform: translateY(2px) scale(0.98); box-shadow: 0 5px 14px rgba(232,64,90,0.4), inset 0 1px 0 rgba(255,255,255,0.4); }
+    .big.green { background: linear-gradient(180deg, #34c77c, #1b8a55); box-shadow: 0 10px 28px rgba(31,170,100,0.42), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -3px 0 rgba(0,0,0,0.18); }
+    .big.back, .nav .back { background: var(--glass2); box-shadow: inset 0 0 0 1px var(--line); color: #fff; }
+    #btn-play { width: 100%; min-height: 64px; font-size: 24px; }
+    .tag { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 14px; }
+    /* the bottom bar on the picking screens: always on screen (sticks to the bottom as the list scrolls) */
+    .nav { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .nav.sticky { position: sticky; bottom: 0; z-index: 2; margin: 14px calc(-1 * (env(safe-area-inset-right) + 16px)) calc(-1 * (env(safe-area-inset-bottom) + 20px));
+      padding: 18px 16px calc(env(safe-area-inset-bottom) + 14px); background: linear-gradient(180deg, rgba(6,11,28,0), rgba(6,11,28,0.88) 38%); }
+    .nav.sticky .big { flex: 1 1 140px; max-width: 260px; }
+    .steps { display: flex; gap: 6px; justify-content: center; margin: 0 0 14px; } .steps i { width: 26px; height: 5px; border-radius: 3px; background: var(--line); } .steps i.on { background: var(--gold); box-shadow: 0 0 10px rgba(255,210,122,0.7); }
+
+    /* who are you: avatar cards in groups */
+    .grp { margin: 0 auto 16px; max-width: 660px; text-align: left; }
+    .grp h3 { margin: 0 4px 8px; font: 800 12px var(--fb); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .grp h3::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .pc { position: relative; padding: 14px 10px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--glass); color: #fff; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+      transition: transform 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s; }
+    .pc .em { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; margin-bottom: 4px;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), transparent 55%), var(--c); box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(255,255,255,0.25); }
+    .pc b { font: 800 17px var(--fh); } .pc i { font-style: normal; font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+    .pc.sel { background: linear-gradient(180deg, rgba(255,210,122,0.2), rgba(255,210,122,0.06)); border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,210,122,0.35), 0 12px 30px rgba(0,0,0,0.35); transform: translateY(-2px); }
+    .pc.sel::after { content: '✓'; position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: #3a2500; font: 900 13px/22px var(--fb); }
+    #who-blurb { min-height: 20px; margin: 4px auto 0; max-width: 560px; color: var(--snow); font-size: 14px; line-height: 1.4; padding: 12px 14px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line); }
+    #who-blurb:empty { display: none; }
+    /* which house / what are we playing: big option cards */
+    .bcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 auto; max-width: 700px; width: 100%; }
+    .bc { position: relative; text-align: left; padding: 16px; border-radius: 22px; border: 1px solid var(--line); background: var(--glass); color: #fff; display: grid; grid-template-columns: 58px 1fr; column-gap: 14px; align-items: center;
+      transition: transform 0.15s, background 0.15s, border-color 0.15s; }
+    .bc .em { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 32px; grid-row: span 3; background: linear-gradient(160deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04)); box-shadow: inset 0 0 0 1px var(--line); }
+    .bc b { font: 800 18px var(--fh); } .bc u { text-decoration: none; color: var(--gold); font-weight: 700; font-size: 13px; } .bc i { font-style: normal; font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+    .bc.sel { background: linear-gradient(160deg, rgba(52,199,124,0.28), rgba(52,199,124,0.08)); border-color: #5ee6a0; box-shadow: 0 0 0 2px rgba(94,230,160,0.3), 0 12px 30px rgba(0,0,0,0.35); }
+    .bc.sel::after { content: '✓'; position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 50%; background: #5ee6a0; color: #063; font: 900 13px/22px var(--fb); text-align: center; }
     .bc.off { opacity: 0.45; }
-    .nav { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .nav .back { background: linear-gradient(180deg, #555, #333); box-shadow: 0 6px 0 #111; border-color: #aaa; }
-    #sum .sline { font: 700 clamp(18px, 4vw, 26px) Georgia, serif; margin: 10px 0; } #sum .em { font-size: 1.3em; }
-    #sum .teams { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; } #sum .teams div { background: var(--c); border-radius: 14px; padding: 10px 14px; font-size: 14px; } #sum .teams b { display: block; font: 900 14px "Arial Black", Arial; margin-bottom: 4px; }
-    #loadscreen .scr { max-width: 520px; } #ls-steps { list-style: none; padding: 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-    #ls-steps li { padding: 8px 14px; border-radius: 12px; background: rgba(0,0,0,0.3); color: rgba(255,255,255,0.5); font: 900 13px "Arial Black", Arial; } #ls-steps li.now { color: #fff; background: var(--red); } #ls-steps li.done { color: #7cff8a; }
-    #ls-steps li.done::after { content: ' ✓'; }
-    .pudding { font-size: 64px; animation: wob 0.8s ease-in-out infinite alternate; display: inline-block; } @keyframes wob { from { transform: rotate(-12deg) scale(1); } to { transform: rotate(12deg) scale(1.1); } }
-    #ready-screen .panel { max-width: 460px; margin: 0 auto; } #ready-who { font: 900 24px Georgia, serif; color: var(--gold); margin-bottom: 14px; }
-    #ready-screen .nav { flex-direction: column; align-items: center; }
+    /* the summary */
+    #sum .sline { font: 700 clamp(17px, 4.4vw, 22px) var(--fh); margin: 8px 0; } #sum .em { font-size: 1.2em; }
+    #sum .teams { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; } #sum .teams div { background: var(--glass); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 14px; padding: 8px 12px; font-size: 13px; color: var(--muted); }
+    #sum .teams b { display: block; font: 800 12px var(--fb); letter-spacing: 0.1em; margin-bottom: 3px; color: #fff; }
+
+    /* the loading screen: a night scene. Nan's bungalow with its windows lighting up one by one, smoke from the
+       chimney, the moon and twinkling stars, Santa's sleigh crossing the sky, and a candy-cane progress bar. Every
+       moving part is transform/opacity only, so none of it stalls while the house is being built. */
+    #loadscreen .scr { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 58px); }
+    .ls-scene { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+    .ls-stars { position: absolute; inset: 0 0 40% 0; will-change: opacity; animation: twinkle 2.6s ease-in-out infinite alternate;
+      background: radial-gradient(circle, #fff 0 1px, transparent 1.6px) 0 0 / 97px 83px, radial-gradient(circle, #fff 0 1.2px, transparent 1.8px) 40px 30px / 151px 127px, radial-gradient(circle, #cfe3ff 0 1px, transparent 1.6px) 70px 60px / 211px 173px; }
+    .ls-stars.b { animation-delay: -1.3s; background-position: 30px 50px, 90px 10px, 20px 100px; }
+    @keyframes twinkle { from { opacity: 0.9; } to { opacity: 0.35; } }
+    .ls-moon { position: absolute; top: calc(env(safe-area-inset-top) + 300px); right: 12%; width: 74px; height: 74px; border-radius: 50%; background: radial-gradient(circle at 38% 36%, #fffbe9, #f2e3b0 60%, #d9c58a);
+      box-shadow: 0 0 40px 10px rgba(255,240,190,0.35), 0 0 120px 40px rgba(255,230,160,0.12); }
+    .ls-sleigh { position: absolute; top: calc(env(safe-area-inset-top) + 330px); left: 0; font-size: 30px; white-space: nowrap; will-change: transform; animation: sleigh 9s linear infinite; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); }
+    .ls-sleigh span { display: inline-block; animation: bob 0.9s ease-in-out infinite alternate; } .ls-sleigh span:nth-child(2) { animation-delay: -0.3s; } .ls-sleigh span:nth-child(3) { animation-delay: -0.6s; }
+    @keyframes sleigh { from { transform: translate3d(-260px, 30px, 0) rotate(-6deg); } to { transform: translate3d(calc(100vw + 60px), -40px, 0) rotate(-6deg); } }
+    @keyframes bob { to { transform: translateY(-6px); } }
+    .ls-house { position: absolute; left: 50%; bottom: 17vh; width: min(560px, 120vw); transform: translateX(-50%); }
+    .ls-house svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .ls-house .win { animation: winon 4.8s ease-in-out infinite; opacity: 0.15; } .ls-house .w2 { animation-delay: 0.6s; } .ls-house .w3 { animation-delay: 1.2s; } .ls-house .w4 { animation-delay: 1.8s; } .ls-house .w5 { animation-delay: 2.4s; }
+    @keyframes winon { 0% { opacity: 0.15; } 12%, 70% { opacity: 1; } 85%, 100% { opacity: 0.15; } }
+    .ls-house .bulb { animation: bulbs 1.1s ease-in-out infinite alternate; } .ls-house .bulb.o { animation-direction: alternate-reverse; }
+    .ls-smoke { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: rgba(230,236,250,0.55); filter: blur(2px); will-change: transform, opacity; animation: smoke 3s ease-out infinite; }
+    .ls-smoke:nth-child(2) { animation-delay: -1s; } .ls-smoke:nth-child(3) { animation-delay: -2s; }
+    @keyframes smoke { from { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0.8; } to { transform: translate3d(26px, -90px, 0) scale(2.2); opacity: 0; } }
+    .ls-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 18vh; background: linear-gradient(180deg, #dfe9fb, #b9c9e8); border-radius: 50% 50% 0 0 / 30px 30px 0 0; box-shadow: 0 -10px 40px rgba(180,200,255,0.25); }
+    .ls-card { position: relative; z-index: 2; max-width: 440px; margin: 0 auto; width: 100%; box-sizing: border-box; background: linear-gradient(180deg, rgba(26,42,88,0.9), rgba(10,18,42,0.92)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .ls-card h2 { font: 800 22px var(--fh); margin: 0 0 12px; }
+    .ls-bar { position: relative; height: 14px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }
+    .ls-bar > i { position: absolute; left: 0; top: 0; bottom: 0; width: 8%; border-radius: 999px; overflow: hidden; transition: width 0.6s cubic-bezier(.3,.8,.3,1); box-shadow: 0 0 14px rgba(255,98,118,0.7); }
+    .ls-bar > i::after { content: ''; position: absolute; top: 0; bottom: 0; left: -40px; width: calc(100% + 80px); min-width: 520px; will-change: transform; animation: cane 0.9s linear infinite;
+      background: repeating-linear-gradient(45deg, #ff5a6e 0 10px, #ffffff 10px 20px); }
+    @keyframes cane { to { transform: translate3d(28.28px, 0, 0); } }
+    #ls-steps { list-style: none; padding: 0; margin: 14px 0 0; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    #ls-steps li { padding: 7px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); color: var(--muted); font: 800 12px var(--fb); letter-spacing: 0.06em; }
+    #ls-steps li.now { color: #fff; border-color: var(--cran); background: rgba(232,64,90,0.25); } #ls-steps li.done { color: #7ff0ae; border-color: rgba(127,240,174,0.5); } #ls-steps li.done::after { content: ' ✓'; }
+    #ls-tip { min-height: 38px; }
+    /* ready */
+    #ready-screen .panel { max-width: 440px; } #ready-who { font: 800 26px var(--fh); margin-bottom: 4px; } #ready-av { width: 84px; height: 84px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center; font-size: 44px;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), transparent 55%), var(--c, #3a7bd5); box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 4px rgba(255,210,122,0.5); }
+    #ready-what { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+    #ready-screen .nav { flex-direction: column; align-items: stretch; } #ready-screen .nav .big { width: 100%; }
 
     /* ---------------- in the game ---------------- */
     #hud { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 20; }
     #hud.on { display: block; } body.in-vr #hud { display: none; }
     #hud-top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(560px, calc(100% - 120px)); }
-    #hud-obj { background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 10px; font: 700 13px Arial; text-align: center; }
+    #hud-obj { background: rgba(8,14,34,0.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; font: 700 13px var(--fb); text-align: center; }
     #hud-obj:empty { display: none; }
-    #hud-hangry { position: absolute; left: max(12px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); width: 170px; background: rgba(0,0,0,0.5); border: 2px solid var(--gold); border-radius: 12px; padding: 6px 8px; }
-    #hud-hangry .hl { font: 900 10px "Arial Black", Arial; } .hbar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden; margin: 4px 0; } #hangry-fill { display: block; height: 100%; width: 30%; background: linear-gradient(90deg, #2fae4e, #ffd400, #ff3b1f); background-size: 170px 100%; transition: width 0.3s; }
-    #hud-hangry.red { animation: shakeh 0.3s infinite; border-color: #ff3b1f; } @keyframes shakeh { 50% { transform: translateX(2px); } }
-    @media (max-width: 700px) { #hud-top { width: calc(100% - 84px); left: max(12px, env(safe-area-inset-left)); transform: none; align-items: flex-start; } #hud-hangry { top: max(92px, calc(env(safe-area-inset-top) + 82px)); width: 150px; } }
+    #hud-hangry { position: absolute; left: max(12px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); width: 170px; background: rgba(8,14,34,0.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 16px; padding: 8px 10px; }
+    #hud-hangry .hl { font: 800 10px var(--fb); letter-spacing: 0.08em; } .hbar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden; margin: 4px 0; } #hangry-fill { display: block; height: 100%; width: 30%; background: linear-gradient(90deg, #2fae4e, #ffd400, #ff3b1f); background-size: 170px 100%; transition: width 0.3s; }
+    #hud-hangry.red { animation: shakeh 0.3s infinite; border-color: #ff5a3c; box-shadow: 0 0 18px rgba(255,90,60,0.6); } @keyframes shakeh { 50% { transform: translateX(2px); } }
+    @media (max-width: 700px) { #hud-top { width: calc(100% - 84px); left: max(12px, env(safe-area-inset-left)); transform: none; align-items: flex-start; } #hud-hangry { top: max(92px, calc(env(safe-area-inset-top) + 82px)); width: 178px; } #hud-toast { top: max(196px, calc(env(safe-area-inset-top) + 186px)); } }
     #hangry-want { font: 700 11px Arial; color: var(--gold); }
-    #hud-pause { position: absolute; right: max(12px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--gold); background: rgba(90,15,24,0.85); color: #fff; font: 900 16px Arial; pointer-events: auto; }
-    #hud-toast { position: absolute; left: 50%; top: 120px; transform: translateX(-50%) translateY(-10px); max-width: min(520px, calc(100% - 32px)); background: rgba(90,15,24,0.92); border: 2px solid var(--gold); border-radius: 14px; padding: 10px 14px; font: 700 14px Arial; text-align: center; opacity: 0; transition: opacity 0.25s, transform 0.25s; }
+    #hud-pause { position: absolute; right: max(12px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: rgba(8,14,34,0.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font: 900 15px var(--fb); pointer-events: auto; box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+    #hud-toast { position: absolute; left: 50%; top: 120px; transform: translateX(-50%) translateY(-10px); max-width: min(520px, calc(100% - 32px)); background: rgba(8,14,34,0.82); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,210,122,0.5); border-radius: 18px; padding: 10px 16px; font: 700 14px var(--fb); box-shadow: 0 10px 30px rgba(0,0,0,0.4); text-align: center; opacity: 0; transition: opacity 0.25s, transform 0.25s; }
     #hud-toast.on { opacity: 1; transform: translateX(-50%); }
-      background: linear-gradient(180deg, rgba(200,34,46,0.96), rgba(110,12,22,0.96)); border: 3px solid var(--gold); border-radius: 18px; padding: 10px 12px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: cardin 0.3s cubic-bezier(.2,1.5,.4,1); }
-    @keyframes cardin { from { transform: translateX(-50%) translateY(30px) scale(0.9); opacity: 0; } }
-    #hud-pausemenu, #hud-result { position: absolute; inset: 0; background: rgba(10,2,4,0.65); display: flex; align-items: center; justify-content: center; pointer-events: auto; z-index: 30; }
-    .pm, .rs { background: linear-gradient(180deg, #c8222e, #8a0f1a); border: 3px solid var(--gold); border-radius: 20px; padding: 20px; width: min(420px, calc(100% - 32px)); box-sizing: border-box; text-align: center; }
-    .pm h2, .rs h1 { font: 900 28px Georgia, serif; color: var(--gold); margin: 0 0 12px; } .pm button, .rs button { display: block; width: 100%; margin: 8px 0; padding: 12px; border-radius: 14px; border: 2px solid var(--gold); background: rgba(0,0,0,0.25); color: #fff; font: 900 16px "Arial Black", Arial; }
-    .rl { font: 700 15px Arial; margin: 8px 0; } .rl:first-child { font: 900 20px Georgia, serif; color: #fff; }
+    /* pause and the end screen: a frosted sheet over the (dimmed, blurred) game */
+    #hud-pausemenu, #hud-result { position: absolute; inset: 0; background: rgba(6,11,28,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; pointer-events: auto; z-index: 30; overflow-y: auto;
+      padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px); box-sizing: border-box; animation: fadein 0.18s ease-out; }
+    @keyframes fadein { from { opacity: 0; } }
+    .pm, .rs { position: relative; width: min(400px, 100%); box-sizing: border-box; text-align: center; padding: 22px 18px 18px; border-radius: 28px; margin: auto;
+      background: linear-gradient(180deg, rgba(30,48,96,0.92), rgba(12,20,46,0.94)); border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.15); animation: sheetin 0.28s cubic-bezier(.2,1.3,.4,1); }
+    @keyframes sheetin { from { transform: translateY(24px) scale(0.96); opacity: 0; } }
+    .pm::before, .rs::before { content: ''; position: absolute; left: 22px; right: 22px; top: -9px; height: 18px; pointer-events: none;
+      background: radial-gradient(circle at 9px 9px, #ff5a6e 0 4px, transparent 4.5px) 0 0 / 36px 18px repeat-x, radial-gradient(circle at 27px 9px, #ffd27a 0 4px, transparent 4.5px) 0 0 / 36px 18px repeat-x; filter: drop-shadow(0 0 4px rgba(255,200,120,0.9)); }
+    .pm-ico { font-size: 40px; line-height: 1; margin-bottom: 4px; }
+    .pm h2, .rs h1 { font: 800 28px var(--fh); color: #fff; margin: 0 0 2px; } .pm-sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .pm button, .rs button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 8px 0; min-height: 50px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--glass); color: #fff; font: 700 16px var(--fh); transition: transform 0.1s, background 0.15s; }
+    .pm button:active, .rs button:active { transform: scale(0.98); background: var(--glass2); }
+    .pm button.primary, .rs button.primary { border: 0; min-height: 56px; font-size: 18px; font-weight: 800; background: linear-gradient(180deg, #34c77c, #1b8a55); box-shadow: 0 10px 24px rgba(31,170,100,0.4), inset 0 1px 0 rgba(255,255,255,0.4); }
+    .pm .row { justify-content: space-between; } .pm .row .lbl { display: flex; align-items: center; gap: 10px; }
+    .sw { position: relative; width: 46px; height: 28px; border-radius: 999px; background: rgba(255,255,255,0.18); transition: background 0.2s; flex: none; }
+    .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); transition: transform 0.2s; }
+    .row.on .sw { background: #34c77c; } .row.on .sw::after { transform: translateX(18px); }
+    .pm .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .pm .two button { margin: 0; }
+    .pm button.quiet { background: transparent; color: var(--muted); border-color: transparent; min-height: 40px; font-size: 14px; }
+    .rl { font: 600 15px var(--fb); margin: 8px 0; color: var(--snow); } .rl:first-child { font: 800 20px var(--fh); color: var(--gold); }
+    .rs-b { margin-top: 14px; }
     body.paused #touch { display: none; }
     #enter-vr { margin-top: 10px; }
     #touch { display: none; position: fixed; inset: 0; pointer-events: none; user-select: none; -webkit-user-select: none; }
@@ -115,48 +233,83 @@
 </head>
 <body>
   <div id="app"></div>
-  <canvas id="snow"></canvas>
+  <div id="snowfx"><b><i class="s1"></i><i class="s2"></i><i class="s3"></i></b></div>
   <div id="menu">
     <div class="lights"></div>
     <section class="scr" id="sc-title">
-      <div class="title-small">The Masons · The Cahalanes · The Cooks</div>
-      <div class="title-big">Christmas Day<br>at Nan's</div>
-      <div class="title-sub">— THE GAME —</div>
-      <div class="panel">
+      <div class="title-wrap">
+        <div class="title-house">🏡</div>
+        <div class="title-small">The Masons · The Cahalanes · The Cooks</div>
+        <div class="title-big">Christmas Day<em>at Nan's</em></div>
+        <div class="title-sub">THE GAME</div>
+      </div>
+      <div class="panel card">
         <button class="big" id="btn-play">🎁 PLAY</button>
-        <div class="tag">Christmas Day · dinner at two · Nan gets hangry at 2:01 · one argument (Paul) · two families · one Nan</div>
+        <div class="tag">Dinner's at two. Nan gets hangry at 2:01. One argument (Paul). Two families. One Nan.</div>
       </div>
     </section>
-    <section class="scr" id="sc-who" hidden>
+    <section class="scr top" id="sc-who" hidden>
+      <div class="steps"><i class="on"></i><i></i><i></i></div>
       <h2 class="sh">Who are you?</h2>
+      <p class="sub">Pick yourself. Everyone else turns up anyway.</p>
       <div id="who-list"></div>
       <div id="who-blurb"></div>
-      <div class="nav"><button class="big" id="who-next">NEXT ➜</button></div>
+      <div class="nav sticky"><button class="big" id="who-next">Next ➜</button></div>
     </section>
-    <section class="scr" id="sc-where" hidden>
+    <section class="scr top" id="sc-where" hidden>
+      <div class="steps"><i class="on"></i><i class="on"></i><i></i></div>
       <h2 class="sh">Which house?</h2>
+      <p class="sub">Where's Christmas this year?</p>
       <div class="bcards" id="where-list"></div>
-      <div class="nav"><button class="big back" id="where-back">⬅ BACK</button><button class="big" id="where-next">NEXT ➜</button></div>
+      <div class="nav sticky"><button class="big back" id="where-back">⬅ Back</button><button class="big" id="where-next">Next ➜</button></div>
     </section>
-    <section class="scr" id="sc-what" hidden>
+    <section class="scr top" id="sc-what" hidden>
+      <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div>
       <h2 class="sh">What are we playing?</h2>
+      <p class="sub">Pick a game. Nan's hunger is in all of them.</p>
       <div class="bcards" id="what-list"></div>
-      <div class="nav"><button class="big back" id="what-back">⬅ BACK</button><button class="big green" id="what-next">🎄 LET'S GO</button></div>
+      <div class="nav sticky"><button class="big back" id="what-back">⬅ Back</button><button class="big green" id="what-next">🎄 Let's go</button></div>
     </section>
     <section class="scr" id="sc-summary" hidden>
-      <h2 class="sh">Merry Christmas!</h2>
-      <div class="panel" id="sum"></div>
+      <div class="kicker">🎄 Merry Christmas</div>
+      <h2 class="sh">Here's the plan</h2>
+      <div class="panel card" id="sum"></div>
     </section>
   </div>
   <div id="loadscreen" hidden>
-    <div class="lights"></div>
-    <section class="scr"><div class="pudding">🎄</div><h2 class="sh">Getting everyone round Nan's…</h2>
+    <div class="ls-scene">
+      <div class="ls-stars"></div><div class="ls-stars b"></div>
+      <div class="ls-moon"></div>
+      <div class="ls-sleigh"><span>🦌</span><span>🦌</span><span>🛷</span></div>
+      <div class="ls-ground"></div>
+      <div class="ls-house">
+        <svg viewBox="0 0 560 230" aria-hidden="true">
+          <defs><linearGradient id="lsw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b8"/><stop offset="1" stop-color="#ffb347"/></linearGradient>
+            <radialGradient id="lsg" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd27a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
+          <ellipse cx="280" cy="150" rx="300" ry="90" fill="url(#lsg)"/>
+          <rect x="398" y="12" width="26" height="60" fill="#3a2e3a"/><rect x="394" y="8" width="34" height="10" fill="#4a3c48"/>
+          <path d="M40 92 L280 18 L520 92 Z" fill="#2a3150"/><path d="M40 92 L280 18 L520 92" fill="none" stroke="#f4f8ff" stroke-width="7" stroke-linejoin="round"/>
+          <rect x="62" y="92" width="436" height="118" fill="#e9ece6"/><rect x="62" y="186" width="436" height="24" fill="#8d9097"/>
+          <rect class="win w1" x="88" y="116" width="62" height="46" rx="3" fill="url(#lsw)"/><rect class="win w2" x="168" y="116" width="62" height="46" rx="3" fill="url(#lsw)"/>
+          <rect x="250" y="112" width="58" height="98" fill="#2b2d30"/><rect x="262" y="124" width="10" height="64" fill="#cfe0e6"/><circle cx="279" cy="134" r="13" fill="none" stroke="#2f7a3e" stroke-width="7"/><circle cx="279" cy="122" r="3" fill="#e8405a"/>
+          <rect class="win w3" x="330" y="116" width="62" height="46" rx="3" fill="url(#lsw)"/><rect class="win w4" x="410" y="116" width="62" height="46" rx="3" fill="url(#lsw)"/>
+          <g fill="#ffffff" opacity="0.85"><rect x="84" y="162" width="70" height="6" rx="3"/><rect x="164" y="162" width="70" height="6" rx="3"/><rect x="326" y="162" width="70" height="6" rx="3"/><rect x="406" y="162" width="70" height="6" rx="3"/></g>
+          <g><circle class="bulb" cx="80" cy="96" r="5" fill="#ff5a6e"/><circle class="bulb o" cx="120" cy="99" r="5" fill="#ffd27a"/><circle class="bulb" cx="160" cy="96" r="5" fill="#5ad6ff"/><circle class="bulb o" cx="200" cy="99" r="5" fill="#6cf09a"/><circle class="bulb" cx="240" cy="96" r="5" fill="#ff5a6e"/>
+            <circle class="bulb o" cx="320" cy="96" r="5" fill="#ffd27a"/><circle class="bulb" cx="360" cy="99" r="5" fill="#5ad6ff"/><circle class="bulb o" cx="400" cy="96" r="5" fill="#6cf09a"/><circle class="bulb" cx="440" cy="99" r="5" fill="#ff5a6e"/><circle class="bulb o" cx="480" cy="96" r="5" fill="#ffd27a"/></g>
+          <path d="M520 210 L548 150 L576 210 Z" fill="#1d6b45"/><path d="M526 182 L548 128 L570 182 Z" fill="#23804f"/><circle class="bulb" cx="548" cy="124" r="5" fill="#ffd27a"/>
+        </svg>
+        <div class="ls-smoke" style="left:72.5%;top:-4px"></div><div class="ls-smoke" style="left:72.5%;top:-4px"></div><div class="ls-smoke" style="left:72.5%;top:-4px"></div>
+      </div>
+    </div>
+    <section class="scr"><div class="ls-card card">
+      <h2 id="ls-title">Getting everyone round Nan's…</h2>
+      <div class="ls-bar"><i id="ls-fill"></i></div>
       <ul id="ls-steps"><li class="now">THE FAMILY</li><li>THE HOUSE</li><li>GO!</li></ul>
-      <div class="tag">Tip: hold a sweet and tap Nan to give it to her. She WILL get hangry.</div></section>
+      <div class="tag" id="ls-tip">Tip: hold a sweet and tap Nan to give it to her. She WILL get hangry.</div></div></section>
   </div>
   <div id="ready-screen" hidden>
-    <section class="scr"><div class="panel"><div id="ready-who"></div>
-      <div class="nav"><button class="big" id="play-flat">🖥️ PLAY ON THIS SCREEN</button><button class="big green" id="enter-vr" hidden>🥽 PLAY IN VR</button></div>
+    <section class="scr"><div class="panel card"><div id="ready-av"></div><div id="ready-who"></div><div id="ready-what"></div>
+      <div class="nav"><button class="big green" id="play-flat">▶ Play on this screen</button><button class="big" id="enter-vr" hidden>🥽 Play in VR</button></div>
       <div class="tag">Phone: joystick to walk, drag to look, tap things to pick them up, tap people to nudge them. Computer: WASD, drag to look, E eat, F throw.</div></div></section>
   </div>
   <script type="module" src="./js/xmas/menu.js"></script>

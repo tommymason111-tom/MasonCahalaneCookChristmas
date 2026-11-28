@@ -4,13 +4,13 @@
 import { FAMILY, TEAMS } from './family.js';
 
 const PLACES = [
-  { id: 'sandybay', ico: '🏡', name: "NAN'S NEW HOUSE", sub: 'Sandy Bay', desc: 'Nan\'s park home at Sandy Bay, where half the over-60s of Essex are her best friends. Lounge, kitchen-diner, conservatory, a little garden, and the neighbours\' lights.' },
-  { id: 'tewkes', ico: '🏠', name: "NAN'S OLD HOUSE", sub: 'Tewkes Road', desc: 'The family home where Karen and Lisa grew up. Front room with the gas fire, the dining room, the kitchen, the long back garden, and the height marks on the door frame.' },
+  { id: 'sandybay', ico: '🏡', name: "Nan's new house", sub: 'Sandy Bay', desc: 'Nan\'s park home at Sandy Bay, where half the over-60s of Essex are her best friends. Lounge, kitchen-diner, the garden with her garages and her silver Micra, the green out the back, and the neighbours\' lights.' },
+  { id: 'tewkes', ico: '🏠', name: "Nan's old house", sub: 'Tewkes Road', desc: 'The family home where Karen and Lisa grew up. Front room with the gas fire, the dining room, the kitchen, the long back garden, and the height marks on the door frame.' },
 ];
 const MODES = [
-  { id: 'hangry', ico: '🍫', name: 'FEED NAN', desc: 'Three minutes. Nan is getting HANGRY. Find what she wants and get it to her before she blows.', noJoan: true },
-  { id: 'fling', ico: '🚀', name: 'FLING THE FAMILY', desc: 'Out in the garden. Everyone queues up; launch them down the lawn. Furthest fling wins.' },
-  { id: 'roam', ico: '🎁', name: 'FREE ROAM', desc: 'No timer. Wander round, eat everything, pull crackers, annoy Michael.' },
+  { id: 'hangry', ico: '🍫', name: 'Feed Nan', desc: 'Three minutes. Nan is getting HANGRY. Find what she wants and get it to her before she blows.', noJoan: true },
+  { id: 'fling', ico: '🚀', name: 'Fling the Family', desc: 'Out in the garden. Everyone queues up; launch them down the lawn. Furthest fling wins.' },
+  { id: 'roam', ico: '🎁', name: 'Free Roam', desc: 'No timer. Wander round, eat everything, pull crackers, annoy Michael.' },
 ];
 const GROUPS = [
   { name: 'The Masons', color: TEAMS.mason.color, ids: TEAMS.mason.members },
@@ -29,7 +29,7 @@ if (sel.me === 'joan' && sel.mode === 'hangry') sel.mode = 'roam';
 
 let resolve; window.xmasMenu = new Promise(r => { resolve = r; });
 const screens = ['title', 'who', 'where', 'what', 'summary'];
-function show(id) { for (const s of screens) $('#sc-' + s).hidden = s !== id; blip(); }
+function show(id) { for (const s of screens) $('#sc-' + s).hidden = s !== id; $('#menu').scrollTop = 0; blip(); }
 function blip() { try { const a = blip.ctx || (blip.ctx = new (window.AudioContext || window.webkitAudioContext)()); const o = a.createOscillator(), g = a.createGain(); o.type = 'triangle'; o.frequency.value = 660 + Math.random() * 200; g.gain.setValueAtTime(0.05, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.15); o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + 0.16); } catch (e) {} }
 
 function drawWho() {
@@ -49,7 +49,7 @@ function go() {
   $('#sum').innerHTML = `<div class="sline"><span class="em">${f.emoji}</span> You're <b>${f.name}</b> (${team})</div><div class="sline"><span class="em">${p.ico}</span> ${p.name} · ${p.sub}</div><div class="sline"><span class="em">${m.ico}</span> ${m.name}</div>
     <div class="teams">${Object.values(TEAMS).map(t => `<div style="--c:${t.color}"><b>${t.name.toUpperCase()}</b>${t.members.map(id => FAMILY[id].name).join(' · ')}</div>`).join('')}</div>`;
   show('summary');
-  setTimeout(() => { $('#menu').hidden = true; $('#loadscreen').hidden = false; resolve({ ...sel }); }, q.get('go') ? 0 : 2600);
+  setTimeout(() => { $('#menu').hidden = true; $('#loadscreen').hidden = false; tips(); resolve({ ...sel }); }, q.get('go') ? 0 : 2600);
 }
 
 $('#who-list').addEventListener('click', (e) => { const b = e.target.closest('.pc'); if (!b) return; sel.me = b.dataset.id; if (sel.me === 'joan' && sel.mode === 'hangry') sel.mode = 'roam'; drawWho(); blip(); });
@@ -62,15 +62,14 @@ $('#where-next').addEventListener('click', () => { drawWhat(); show('what'); });
 $('#what-back').addEventListener('click', () => { drawWhere(); show('where'); });
 $('#what-next').addEventListener('click', go);
 
-// the loading screen's steps (main.js ticks them off)
+// the loading screen: its steps and the candy-cane bar (main.js ticks them off), a new tip every few seconds
+const TIPS = ['Tip: hold a sweet and tap Nan to give it to her. She WILL get hangry.', 'Tip: pull a cracker with EAT. The jokes do not get better.',
+  'Tip: in Fling the Family, everyone queues up on the green. Furthest fling wins.', 'Tip: tap someone to give them a nudge. Michael will notice.',
+  "Tip: Nan's car is on the drive. She only drives it to the clubhouse. It's 60 metres.", 'Tip: the Quality Street are in the tin. The purple ones are already gone.'];
+let tipT = 0; function tips() { let i = Math.floor(Math.random() * TIPS.length); $('#ls-tip').textContent = TIPS[i]; clearInterval(tipT); tipT = setInterval(() => { i = (i + 1) % TIPS.length; $('#ls-tip').textContent = TIPS[i]; }, 3800); }
 window.__ls = (k) => { const order = ['family', 'house', 'go'], i = order.indexOf(k); document.querySelectorAll('#ls-steps li').forEach((li, j) => { li.classList.toggle('done', j < i || k === 'go'); li.classList.toggle('now', j === i && k !== 'go'); });
-  if (k === 'go') { $('#loadscreen').hidden = true; $('#ready-screen').hidden = false; const f = FAMILY[sel.me]; $('#ready-who').textContent = `${f.emoji} You're ${f.name}`; } };
-
-// falling snow on the menus
-{ const c = $('#snow'), g = c.getContext('2d'); let W, H; const fl = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), r: 1 + Math.random() * 2.6, s: 0.02 + Math.random() * 0.05, w: Math.random() * 6 }));
-  const size = () => { W = c.width = innerWidth; H = c.height = innerHeight; }; size(); addEventListener('resize', size);
-  const tick = () => { if ($('#menu').hidden && $('#loadscreen').hidden) { if (c.width) { g.clearRect(0, 0, W, H); c.width = 0; } } else { if (!c.width) size(); g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(255,255,255,0.85)';
-    for (const f of fl) { f.y += f.s / 60 * 6; f.w += 0.02; if (f.y > 1) { f.y = -0.02; f.x = Math.random(); } g.beginPath(); g.arc((f.x + Math.sin(f.w) * 0.01) * W, f.y * H, f.r, 0, 7); g.fill(); } }
-    requestAnimationFrame(tick); }; tick(); }
+  $('#ls-fill').style.width = ({ family: '30%', house: '68%', go: '100%' })[k] || '8%';
+  if (k === 'go') { clearInterval(tipT); $('#loadscreen').hidden = true; $('#ready-screen').hidden = false; const f = FAMILY[sel.me], p = PLACES.find(x => x.id === sel.place), m = MODES.find(x => x.id === sel.mode);
+    $('#ready-av').textContent = f.emoji; $('#ready-av').style.setProperty('--c', f.color); $('#ready-who').textContent = `You're ${f.name}`; $('#ready-what').textContent = `${m.ico} ${m.name} · ${p.ico} ${p.sub}`; } };
 
 if (q.get('go')) go(); else show('title');

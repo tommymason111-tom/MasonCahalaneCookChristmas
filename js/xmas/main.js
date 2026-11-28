@@ -286,7 +286,7 @@ fitCamera(); window.addEventListener('resize', fitCamera);
 
 // ---------------- pause & the end ----------------
 let paused = false;
-function setPaused(on) { paused = on; document.body.classList.toggle('paused', on); hud.pause(on, { music: () => { const v = carols.toggle(); try { localStorage.setItem('xm_music', v ? '1' : '0'); } catch (e) {} return v; }, musicOn: () => carols.on, restart: () => location.reload(), menu: () => { location.href = location.pathname; }, mute: (m) => setMuted(m) }); }
+function setPaused(on) { paused = on; document.body.classList.toggle('paused', on); hud.pause(on, { where: () => ({ hangry: '🍫 Feed Nan', fling: '🚀 Fling the Family', roam: '🎁 Free Roam' })[SEL.mode] + ' · ' + (SEL.place === 'tewkes' ? "🏠 Nan's old house" : '🏡 Sandy Bay'), music: () => { const v = carols.toggle(); try { localStorage.setItem('xm_music', v ? '1' : '0'); } catch (e) {} return v; }, musicOn: () => carols.on, restart: () => location.reload(), menu: () => { location.href = location.pathname; }, mute: (m) => setMuted(m) }); }
 function gameOver(title, lines) {
   if (G.over) return; G.over = true;
   hud.result(title, lines, { again: () => location.reload(), menu: () => { location.href = location.pathname; } });
