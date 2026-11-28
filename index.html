@@ -93,8 +93,9 @@
     .tag { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 14px; }
     /* the bottom bar on the picking screens: always on screen (sticks to the bottom as the list scrolls) */
     .nav { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-    .nav.sticky { position: sticky; bottom: 0; z-index: 2; margin: 14px calc(-1 * (env(safe-area-inset-right) + 16px)) calc(-1 * (env(safe-area-inset-bottom) + 20px));
-      padding: 18px 16px calc(env(safe-area-inset-bottom) + 14px); background: linear-gradient(180deg, rgba(6,11,28,0), rgba(6,11,28,0.88) 38%); }
+    .scr.top { padding-bottom: 0; }
+    .nav.sticky { position: sticky; bottom: 0; z-index: 2; margin: auto calc(-1 * (env(safe-area-inset-right) + 16px)) 0; margin-top: 14px;
+      padding: 18px 16px calc(env(safe-area-inset-bottom) + 14px); background: none; pointer-events: none; } .nav.sticky .big { pointer-events: auto; }
     .nav.sticky .big { flex: 1 1 140px; max-width: 260px; }
     .steps { display: flex; gap: 6px; justify-content: center; margin: 0 0 14px; } .steps i { width: 26px; height: 5px; border-radius: 3px; background: var(--line); } .steps i.on { background: var(--gold); box-shadow: 0 0 10px rgba(255,210,122,0.7); }
 
@@ -102,7 +103,8 @@
     .grp { margin: 0 auto 16px; max-width: 660px; text-align: left; }
     .grp h3 { margin: 0 4px 8px; font: 800 12px var(--fb); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
     .grp h3::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; } .cards .pc { flex: 0 1 calc(25% - 8px); min-width: 74px; max-width: 150px; box-sizing: border-box; }      /* (four to a row: each family on one line)*/
+    @media (max-width: 420px) { .pc .em { width: 50px; height: 50px; font-size: 26px; } .pc b { font-size: 15px; } .pc { padding: 12px 4px 10px; } }
     .pc { position: relative; padding: 14px 10px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--glass); color: #fff; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
       transition: transform 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s; }
     .pc .em { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; margin-bottom: 4px;

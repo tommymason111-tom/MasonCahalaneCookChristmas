@@ -34,7 +34,7 @@ function blip() { try { const a = blip.ctx || (blip.ctx = new (window.AudioConte
 
 function drawWho() {
   $('#who-list').innerHTML = GROUPS.map(g => `<div class="grp"><h3 style="--c:${g.color}">${g.name}</h3><div class="cards">${g.ids.map(id => { const f = FAMILY[id];
-    return `<button class="pc${id === sel.me ? ' sel' : ''}" data-id="${id}" style="--c:${f.color}"><span class="em">${f.emoji}</span><b>${f.name}</b><i>${f.role}</i></button>`; }).join('')}</div></div>`).join('');
+    return `<button class="pc${id === sel.me ? ' sel' : ''}" data-id="${id}" style="--c:${f.color}"><span class="em">${f.emoji}</span><b>${f.name}</b></button>`; }).join('')}</div></div>`).join('');
   $('#who-blurb').textContent = FAMILY[sel.me].blurb;
 }
 function drawWhere() { $('#where-list').innerHTML = PLACES.map(p => `<button class="bc${p.id === sel.place ? ' sel' : ''}" data-id="${p.id}"><span class="em">${p.ico}</span><b>${p.name}</b><u>${p.sub}</u><i>${p.desc}</i></button>`).join(''); }
