@@ -164,13 +164,14 @@ export function curtains(k, axis, c, a0, a1, d, top, { col = 0x8f9396, col2 = 0x
 }
 // a double bed: upholstered taupe headboard, white bedding, a grey throw and cushions. The head against a wall;
 // ry = the way the foot points (0 = +z)
-export function bed(k, x, z, ry, { w = 1.5, l = 2.0, head = 0x9d9184 } = {}) {
+// (a themed room: duvet, throw, pillows and the three cushions' colours can be given)
+export function bed(k, x, z, ry, { w = 1.5, l = 2.0, head = 0x9d9184, duvet = 0xf7f6f3, throwCol = 0x6e7275, pillow = 0xfafaf8, cushions = [0x2f6d73, 0xc9a03a, 0x2f6d73] } = {}) {
   const f = frame(x, z, ry), B = (ww, h, d, lx, y, lz, col, rx = 0) => Bx(k, f, ry, ww, h, d, lx, y, lz, col, rx);
   B(w + 0.06, 0.3, l, 0, 0.17, 0, head); B(w, 0.24, l - 0.06, 0, 0.42, 0.02, 0xf4f2ee);
-  P(k, f, ry, rbox(w + 0.02, 0.1, l - 0.4, 0.05), 0xf7f6f3, 0, 0.56, 0.18);                     // the duvet
-  P(k, f, ry, rbox(w + 0.06, 0.06, 0.55, 0.03), 0x6e7275, 0, 0.6, l / 2 - 0.42);               // a grey throw
-  for (const s of [-1, 1]) P(k, f, ry, rbox(w / 2 - 0.08, 0.14, 0.38, 0.06), 0xfafaf8, s * w / 4, 0.62, -l / 2 + 0.32, [-0.5, 0, 0]);
-  for (const [s, col] of [[-1, 0x2f6d73], [0, 0xc9a03a], [1, 0x2f6d73]]) P(k, f, ry, rbox(0.36, 0.3, 0.1, 0.05), col, s * 0.36, 0.72, -l / 2 + 0.55, [-0.4, 0, 0]);
+  P(k, f, ry, rbox(w + 0.02, 0.1, l - 0.4, 0.05), duvet, 0, 0.56, 0.18);                     // the duvet
+  P(k, f, ry, rbox(w + 0.06, 0.06, 0.55, 0.03), throwCol, 0, 0.6, l / 2 - 0.42);               // a throw
+  for (const s of [-1, 1]) P(k, f, ry, rbox(w / 2 - 0.08, 0.14, 0.38, 0.06), pillow, s * w / 4, 0.62, -l / 2 + 0.32, [-0.5, 0, 0]);
+  for (const [s, col] of [[-1, cushions[0]], [0, cushions[1]], [1, cushions[2]]]) P(k, f, ry, rbox(0.36, 0.3, 0.1, 0.05), col, s * 0.36, 0.72, -l / 2 + 0.55, [-0.4, 0, 0]);
   P(k, f, ry, rbox(w + 0.3, 1.25, 0.12, 0.05), head, 0, 0.72, -l / 2 - 0.04);                   // the headboard
   for (let i = -2; i <= 2; i++) B(0.012, 0.95, 0.02, i * (w + 0.3) / 5.4, 0.78, -l / 2 + 0.03, new THREE.Color(head).multiplyScalar(0.85).getHex());   // its stitched panels
   rotBlock(k, x, z, ry, w + 0.3, l + 0.1, 0.7);
@@ -186,10 +187,21 @@ export function bedside(k, x, z, ry, { lamp = true } = {}) {
   if (lamp) tableLamp(k, x, 0.55, z, { base: 0x9aa0a4 });
 }
 // mirrored sliding wardrobes along a wall (axis 'x' = along x at z = c, d = the room side)
-export function mirrorWardrobe(k, axis, c, a0, a1, d, { h = 2.25, depth = 0.62 } = {}) {
+// mirror: floor-to-ceiling mirrored sliding doors (bright silver-grey glass in slim frames, soft streaks of 'reflection')
+export function mirrorWardrobe(k, axis, c, a0, a1, d, { h = 2.25, depth = 0.62, mirror = false } = {}) {
   const B = (w, hh, t, a, y, off, col, opts) => axis === 'x' ? k.box(w, hh, t, a, y, c + d * off, col, opts) : k.box(t, hh, w, c + d * off, y, a, col, opts);
   const m = (a0 + a1) / 2, len = a1 - a0;
   B(len, h, depth, m, h / 2, depth / 2, 0xe8e6e2, { block: true });
+  if (mirror) {
+    const n = Math.max(2, Math.round(len / 0.95)), w = len / n, FR = 0x7e858a;
+    for (let i = 0; i < n; i++) { const a = a0 + w * (i + 0.5), off = depth + 0.006 + (i % 2) * 0.028;
+      B(w + 0.01, h - 0.05, 0.016, a, h / 2, off, FR);                                                    // the slim frame (it shows round the glass)
+      B(w - 0.05, h - 0.13, 0.012, a, h / 2, off + 0.006, i % 2 ? 0xd9e2e7 : 0xd0dade);                  // the mirror glass
+      for (const [u, sw, col] of [[-0.22, 0.09, 0xeef4f7], [-0.08, 0.035, 0xe8eff3], [0.18, 0.06, 0xc4ced4]]) B(w * sw * 2, h - 0.2, 0.004, a + u * w, h / 2 + 0.02, off + 0.013, col);    // soft streaks
+    }
+    B(len, 0.05, 0.07, m, h - 0.025, depth + 0.035, FR); B(len, 0.05, 0.07, m, 0.025, depth + 0.035, FR);     // the top and bottom tracks
+    return;
+  }
   const n = Math.max(2, Math.round(len / 0.9)), w = len / n;
   for (let i = 0; i < n; i++) { const a = a0 + w * (i + 0.5); B(w - 0.03, h - 0.12, 0.02, a, h / 2, depth + 0.01 + (i % 2) * 0.03, i % 2 ? 0xb9c8d0 : 0xa9bac4); B(w - 0.01, h - 0.08, 0.015, a, h / 2, depth + 0.004 + (i % 2) * 0.03, 0x9aa0a4); }
   B(len, 0.04, 0.06, m, h - 0.02, depth + 0.03, 0x9aa0a4); B(len, 0.04, 0.06, m, 0.02, depth + 0.03, 0x9aa0a4);

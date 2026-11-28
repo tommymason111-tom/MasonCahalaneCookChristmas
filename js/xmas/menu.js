@@ -4,11 +4,14 @@
 import { FAMILY, TEAMS } from './family.js';
 
 // the game's version (bump this with each update: then run  python3 tools/stamp.py)
-export const GAME_VERSION = '1.6.0';
+export const GAME_VERSION = '1.7.0';
 // when each update came out (UK time)
-const GAME_WHEN = { '1.6.0': '2026-11-28T11:50', '1.5.1': '2026-11-28T11:15', '1.5.0': '2026-11-28T10:40', '1.4.0': '2026-11-28T10:33', '1.3.0': '2026-11-27T22:02', '1.2.0': '2026-11-27T17:04', '1.1.0': '2026-11-27T16:02', '1.0.0': '2026-11-27T15:51' };
+const GAME_WHEN = { '1.7.0': '2026-11-28T13:30', '1.6.0': '2026-11-28T11:50', '1.5.1': '2026-11-28T11:15', '1.5.0': '2026-11-28T10:40', '1.4.0': '2026-11-28T10:33', '1.3.0': '2026-11-27T22:02', '1.2.0': '2026-11-27T17:04', '1.1.0': '2026-11-27T16:02', '1.0.0': '2026-11-27T15:51' };
 // what's new (newest first): shown under the settings cog
 const GAME_UPDATES = [
+  ['1.7.0', ["🏡 Nan's Sandy Bay house laid out exactly like the family's floor plan", '🚪 Up the decking steps (bottom left) to the front door, which opens into the kitchen: the hub of the house, with the island, the kitchen sofa and the table set for nine',
+    '🛋️ The living room is through the kitchen, with Nan\'s armchair in the corner and French doors out onto the decking', '🛏️ The hallway: two bedroom doors straight ahead, the bathroom on the left. The red bedroom has the en-suite and walk-in shower; the other is yellow. Floor-to-ceiling mirrored wardrobes in both',
+    '🪴 The garages are garden sheds now, facing into the back garden; back door and steps down to the grass; the driveway down the left with the Micra', '🧹 No office or utility room any more', '🚀 Fling the Family is on the back lawn']],
   ['1.6.0', ['⚙️ A settings cog on the title screen: the version you\'re playing, when it came out and every update', '🔄 The game always runs the newest version: open it and it moves itself onto the latest update',
     '🛠️ DEVELOPER MODE (behind a code): jump to any room, bring, fling or line up the family, any food in your hand, walk through walls, slow motion, a stats readout, every sound, and start any game from there',
     '⏩ No more "Here\'s the plan" screen: straight from Let\'s go to loading']],
