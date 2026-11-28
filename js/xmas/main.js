@@ -301,7 +301,7 @@ const menuCam = new THREE.PerspectiveCamera(60, 1, 0.05, 120); let menuT = 0, me
 document.body.classList.add('ready');
 window.__ls && window.__ls('go');
 function frame(simDt) {
-  const dt = simDt ?? Math.min(clock.getDelta(), 0.05);
+  const dt = (simDt ?? Math.min(clock.getDelta(), 0.05)) * (window.__timeScale || 1);      // (developer mode's slow motion)
   carols.update();
   const xr = renderer.xr.isPresenting;
   if (paused && simDt == null && !xr) { renderer.render(scene, camera); return; }
@@ -343,3 +343,6 @@ function frame(simDt) {
   if (simDt == null) renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(() => { try { frame(); } catch (e) { console.error('frame', e); } });
+// developer mode (settings cog -> DEVELOPER MODE -> the code -> a house): the test panel (devmode.js)
+{ let dev = false; try { dev = sessionStorage.getItem('xm_dev') === '1' && localStorage.getItem('xm_dev_locked') !== '1'; } catch (e) {}
+  if (dev) import('./devmode.js').then(m => m.startDev(window.XM)).catch(e => console.warn('dev', e)); }

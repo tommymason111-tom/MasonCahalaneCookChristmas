@@ -84,3 +84,10 @@ js/*.js               Ronnie Simulator's engine (only the parts this game uses):
 assets/family/        the family's 3D models;  assets/hands/: hand models (WebXR Input Profiles, MIT)
 tools/                model maker, model and level viewers
 ```
+
+## Version, updates and developer mode
+
+The settings cog on the title screen shows the version, when it came out and every update; the game moves itself onto
+the newest version when it's opened. DEVELOPER MODE (in the same box) is behind a code and opens a test panel in the
+game: jump to any room, move or fling the family, any food into your hand, walk through walls, slow motion, stats,
+every sound, and start any game from there.

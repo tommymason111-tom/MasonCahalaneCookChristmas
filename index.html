@@ -8,13 +8,77 @@
     "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
     "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js",
-    "meshoptimizer/simplifier": "https://cdn.jsdelivr.net/npm/meshoptimizer@0.22.0/meshopt_simplifier.module.js"
+    "meshoptimizer/simplifier": "https://cdn.jsdelivr.net/npm/meshoptimizer@0.22.0/meshopt_simplifier.module.js",
+    "./js/audio.js": "./js/audio.js?v=1.6.0",
+    "./js/belly.js": "./js/belly.js?v=1.6.0",
+    "./js/character.js": "./js/character.js?v=1.6.0",
+    "./js/config.js": "./js/config.js?v=1.6.0",
+    "./js/dialogue.js": "./js/dialogue.js?v=1.6.0",
+    "./js/foodmodels.js": "./js/foodmodels.js?v=1.6.0",
+    "./js/foods.js": "./js/foods.js?v=1.6.0",
+    "./js/fx.js": "./js/fx.js?v=1.6.0",
+    "./js/gait.js": "./js/gait.js?v=1.6.0",
+    "./js/geo.js": "./js/geo.js?v=1.6.0",
+    "./js/hands.js": "./js/hands.js?v=1.6.0",
+    "./js/haptics.js": "./js/haptics.js?v=1.6.0",
+    "./js/hold.js": "./js/hold.js?v=1.6.0",
+    "./js/levels/furniture.js": "./js/levels/furniture.js?v=1.6.0",
+    "./js/levels/glow.js": "./js/levels/glow.js?v=1.6.0",
+    "./js/levels/kit.js": "./js/levels/kit.js?v=1.6.0",
+    "./js/levels/nissan.js": "./js/levels/nissan.js?v=1.6.0",
+    "./js/levels/outdoor.js": "./js/levels/outdoor.js?v=1.6.0",
+    "./js/levels/sandybay.js": "./js/levels/sandybay.js?v=1.6.0",
+    "./js/levels/sandybay_estate.js": "./js/levels/sandybay_estate.js?v=1.6.0",
+    "./js/levels/sandybay_furn.js": "./js/levels/sandybay_furn.js?v=1.6.0",
+    "./js/levels/sandybay_props.js": "./js/levels/sandybay_props.js?v=1.6.0",
+    "./js/levels/sandybay_resort.js": "./js/levels/sandybay_resort.js?v=1.6.0",
+    "./js/levels/sandybay_tex.js": "./js/levels/sandybay_tex.js?v=1.6.0",
+    "./js/levels/tewkes.js": "./js/levels/tewkes.js?v=1.6.0",
+    "./js/levels/tewkes_props.js": "./js/levels/tewkes_props.js?v=1.6.0",
+    "./js/levels/tewkes_tex.js": "./js/levels/tewkes_tex.js?v=1.6.0",
+    "./js/modelines.js": "./js/modelines.js?v=1.6.0",
+    "./js/narration.js": "./js/narration.js?v=1.6.0",
+    "./js/narrator.js": "./js/narrator.js?v=1.6.0",
+    "./js/nav.js": "./js/nav.js?v=1.6.0",
+    "./js/perf.js": "./js/perf.js?v=1.6.0",
+    "./js/physics.js": "./js/physics.js?v=1.6.0",
+    "./js/pingpong.js": "./js/pingpong.js?v=1.6.0",
+    "./js/pint.js": "./js/pint.js?v=1.6.0",
+    "./js/playbutton.js": "./js/playbutton.js?v=1.6.0",
+    "./js/player.js": "./js/player.js?v=1.6.0",
+    "./js/portraits.js": "./js/portraits.js?v=1.6.0",
+    "./js/punteranims.js": "./js/punteranims.js?v=1.6.0",
+    "./js/quality.js": "./js/quality.js?v=1.6.0",
+    "./js/ragdoll.js": "./js/ragdoll.js?v=1.6.0",
+    "./js/roomopts.js": "./js/roomopts.js?v=1.6.0",
+    "./js/seating.js": "./js/seating.js?v=1.6.0",
+    "./js/squad.js": "./js/squad.js?v=1.6.0",
+    "./js/textures.js": "./js/textures.js?v=1.6.0",
+    "./js/touch.js": "./js/touch.js?v=1.6.0",
+    "./js/voices.js": "./js/voices.js?v=1.6.0",
+    "./js/xmas/carols.js": "./js/xmas/carols.js?v=1.6.0",
+    "./js/xmas/devmode.js": "./js/xmas/devmode.js?v=1.6.0",
+    "./js/xmas/family.js": "./js/xmas/family.js?v=1.6.0",
+    "./js/xmas/games.js": "./js/xmas/games.js?v=1.6.0",
+    "./js/xmas/hud.js": "./js/xmas/hud.js?v=1.6.0",
+    "./js/xmas/main.js": "./js/xmas/main.js?v=1.6.0",
+    "./js/xmas/menu.js": "./js/xmas/menu.js?v=1.6.0",
+    "./js/xmas/procbinds.js": "./js/xmas/procbinds.js?v=1.6.0",
+    "./js/xmas/xfood.js": "./js/xmas/xfood.js?v=1.6.0"
   }
 }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0b1430">
   <title>Christmas Day at Nan's</title>
+  <script>
+    // Always run the newest version: if this page is an old cached copy, reload it once (the import map loads every
+    // script with the version on it, so old and new files can never get mixed up on a phone). Like Ronnie Simulator.
+    window.GAME_BUILD = '1.6.0';
+    (() => { try { fetch('./version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => {
+      if (!j || !j.v || j.v === window.GAME_BUILD) return; const k = 'xm_reload_' + j.v; if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1');
+      const u = new URL(location.href); u.searchParams.set('v', j.v); location.replace(u.toString()); }).catch(() => {}); } catch (e) {} })();
+  </script>
   <style>
     /* "Christmas night at Nan's": a deep winter-night sky, frosted-glass cards, warm window-light gold, cranberry and
        pine accents, rounded type. (Its own look: not the Boxing Day quiz's red-and-gold panels.) */
@@ -123,10 +187,6 @@
     .bc.sel { background: linear-gradient(160deg, rgba(52,199,124,0.28), rgba(52,199,124,0.08)); border-color: #5ee6a0; box-shadow: 0 0 0 2px rgba(94,230,160,0.3), 0 12px 30px rgba(0,0,0,0.35); }
     .bc.sel::after { content: '✓'; position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 50%; background: #5ee6a0; color: #063; font: 900 13px/22px var(--fb); text-align: center; }
     .bc.off { opacity: 0.45; }
-    /* the summary */
-    #sum .sline { font: 700 clamp(17px, 4.4vw, 22px) var(--fh); margin: 8px 0; } #sum .em { font-size: 1.2em; }
-    #sum .teams { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; } #sum .teams div { background: var(--glass); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 14px; padding: 8px 12px; font-size: 13px; color: var(--muted); }
-    #sum .teams b { display: block; font: 800 12px var(--fb); letter-spacing: 0.1em; margin-bottom: 3px; color: #fff; }
 
     /* the loading screen: a night scene. Nan's bungalow with its windows lighting up one by one, smoke from the
        chimney, the moon and twinkling stars, Santa's sleigh crossing the sky, and a candy-cane progress bar. Every
@@ -168,6 +228,36 @@
       background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), transparent 55%), var(--c, #3a7bd5); box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 4px rgba(255,210,122,0.5); }
     #ready-what { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
     #ready-screen .nav { flex-direction: column; align-items: stretch; } #ready-screen .nav .big { width: 100%; }
+
+
+    /* the settings cog (title screen) and its sheet: version, release time, the update notes, developer mode */
+    #cog { position: fixed; top: calc(env(safe-area-inset-top) + 40px); right: calc(env(safe-area-inset-right) + 14px); z-index: 55; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass2); color: #fff; font-size: 22px;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+    #menu:has(#sc-title[hidden]) #cog { display: none; }
+    .title-ver { margin-top: 14px; color: rgba(232,240,255,0.45); font: 700 12px var(--fb); letter-spacing: 0.08em; }
+    #settings { position: fixed; inset: 0; z-index: 60; background: rgba(6,11,28,0.6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 14px); box-sizing: border-box; }
+    #settings .setbox { position: relative; width: min(460px, 100%); max-height: 100%; display: flex; flex-direction: column; text-align: left; padding: 18px; box-sizing: border-box; background: linear-gradient(180deg, rgba(30,48,96,0.96), rgba(12,20,46,0.97)); }
+    #settings h3 { margin: 0 0 12px; font: 800 22px var(--fh); text-align: center; } #settings h4 { margin: 14px 0 6px; font: 800 12px var(--fb); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .set-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); color: #fff; font-size: 15px; }
+    .setrow { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 12px; background: var(--glass); margin: 4px 0; font-size: 14px; } .setrow span { color: var(--muted); } .setrow b { color: var(--gold); }
+    #set-updates { flex: 1 1 auto; min-height: 60px; overflow-y: auto; font: 13px/1.4 var(--fb); padding-right: 4px; -webkit-overflow-scrolling: touch; }
+    #set-updates .upd { margin-bottom: 12px; } #set-updates .upd b { color: #7ff0ae; display: block; margin-bottom: 3px; font: 800 14px var(--fh); } #set-updates .upd b i { color: var(--muted); font: 600 12px var(--fb); font-style: normal; margin-left: 6px; }
+    #set-updates ul { margin: 0; padding-left: 18px; } #set-updates li { margin: 3px 0; color: var(--snow); }
+    .midbtn { width: 100%; margin-top: 10px; min-height: 48px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass); color: #fff; font: 800 15px var(--fh); }
+    .midbtn.quiet { background: transparent; border-color: transparent; color: var(--muted); margin-top: 4px; }
+    #set-dev { font-family: 'Courier New', monospace; letter-spacing: 1px; color: #39ff14; border-color: rgba(57,255,20,0.5); background: rgba(0,20,4,0.6); } #set-dev.locked { color: #ff8a8a; border-color: rgba(255,120,120,0.4); background: rgba(40,0,0,0.4); }
+    #dev-code { display: flex; gap: 8px; margin-top: 10px; } #dev-code[hidden] { display: none; }
+    #dev-code input { flex: 1; min-width: 0; font: 800 18px 'Courier New', monospace; letter-spacing: 4px; text-transform: uppercase; padding: 10px 12px; border-radius: 12px; border: 1px solid #39ff14; background: #020a04; color: #39ff14; }
+    #dev-code button { padding: 0 16px; border-radius: 12px; border: 0; background: #39ff14; color: #001a00; font: 900 14px 'Courier New', monospace; }
+    #dev-maps { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } #dev-maps[hidden] { display: none; }
+    .dv-maps-h { grid-column: 1 / -1; font: 900 13px 'Courier New', monospace; color: #39ff14; text-shadow: 0 0 6px #39ff14; }
+    #dev-maps button { padding: 12px 6px; border-radius: 12px; border: 1px solid #39ff14; background: #020a04; color: #39ff14; font: 900 13px 'Courier New', monospace; } #dev-maps button b { display: block; font-size: 26px; margin-bottom: 4px; }
+    #dev-msg { margin-top: 8px; color: #ff8a8a; font: 800 12px 'Courier New', monospace; text-align: center; } #dev-msg:empty { display: none; }
+    /* developer mode: the loading and ready cards go green terminal */
+    body.devmode .ls-card, body.devmode #ready-screen .card { background: #020a04 !important; border: 2px solid #39ff14; box-shadow: 0 0 30px rgba(57,255,20,0.45), inset 0 0 50px rgba(57,255,20,0.12); }
+    body.devmode #ready-who, body.devmode .ls-card h2 { color: #39ff14; font-family: 'Courier New', monospace; letter-spacing: 2px; text-shadow: 0 0 10px #39ff14; }
+    body.devmode #ready-screen #play-flat { background: #39ff14; color: #001a00; font-family: 'Courier New', monospace; box-shadow: 0 0 24px rgba(57,255,20,0.7); }
+    body.devmode #ready-av { box-shadow: 0 0 0 4px #39ff14, 0 0 30px #39ff14; }
 
     /* ---------------- in the game ---------------- */
     #hud { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 20; }
@@ -238,6 +328,22 @@
   <div id="snowfx"><b><i class="s1"></i><i class="s2"></i><i class="s3"></i></b></div>
   <div id="menu">
     <div class="lights"></div>
+    <button id="cog" aria-label="Settings" title="Settings">⚙️</button>
+    <div id="settings" hidden>
+      <div class="setbox card">
+        <button type="button" class="set-x" id="set-x" aria-label="Close">✕</button>
+        <h3>⚙️ Settings</h3>
+        <div class="setrow"><span>Version</span><b id="set-version"></b></div>
+        <div class="setrow"><span>Released</span><b id="set-date"></b></div>
+        <h4>Latest updates</h4>
+        <div id="set-updates"></div>
+        <button class="midbtn" id="set-dev">🛠️ DEVELOPER MODE</button>
+        <div id="dev-code" hidden><input id="dev-pin" type="password" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="8" autocomplete="off" placeholder="CODE"><button id="dev-go">ENTER</button></div>
+        <div id="dev-maps" hidden></div>
+        <div id="dev-msg"></div>
+        <button class="midbtn quiet" id="set-close">Close</button>
+      </div>
+    </div>
     <section class="scr" id="sc-title">
       <div class="title-wrap">
         <div class="title-house">🏡</div>
@@ -249,6 +355,7 @@
         <button class="big" id="btn-play">🎁 PLAY</button>
         <div class="tag">Dinner's at two. Nan gets hangry at 2:01. One argument (Paul). Two families. One Nan.</div>
       </div>
+      <div class="title-ver" id="title-ver"></div>
     </section>
     <section class="scr top" id="sc-who" hidden>
       <div class="steps"><i class="on"></i><i></i><i></i></div>
@@ -271,11 +378,6 @@
       <p class="sub">Pick a game. Nan's hunger is in all of them.</p>
       <div class="bcards" id="what-list"></div>
       <div class="nav sticky"><button class="big back" id="what-back">⬅ Back</button><button class="big green" id="what-next">🎄 Let's go</button></div>
-    </section>
-    <section class="scr" id="sc-summary" hidden>
-      <div class="kicker">🎄 Merry Christmas</div>
-      <h2 class="sh">Here's the plan</h2>
-      <div class="panel card" id="sum"></div>
     </section>
   </div>
   <div id="loadscreen" hidden>
@@ -314,7 +416,7 @@
       <div class="nav"><button class="big green" id="play-flat">▶ Play on this screen</button><button class="big" id="enter-vr" hidden>🥽 Play in VR</button></div>
       <div class="tag">Phone: joystick to walk, drag to look, tap things to pick them up, tap people to nudge them. Computer: WASD, drag to look, E eat, F throw.</div></div></section>
   </div>
-  <script type="module" src="./js/xmas/menu.js"></script>
-  <script type="module" src="./js/xmas/main.js"></script>
+  <script type="module" src="./js/xmas/menu.js?v=1.6.0"></script>
+  <script type="module" src="./js/xmas/main.js?v=1.6.0"></script>
 </body>
 </html>

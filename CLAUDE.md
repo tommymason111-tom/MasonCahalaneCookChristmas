@@ -9,6 +9,25 @@ food and level kit), so it looks and moves like Ronnie Simulator. Read `README.m
 
 - Work on `main`. Commit and push everything. Don't open pull requests unless asked.
 
+## Versions
+
+Every update bumps the version (like Ronnie Simulator).
+
+- **To bump:**
+  1. Edit `GAME_VERSION` in `js/xmas/menu.js`, add its time to `GAME_WHEN` and its notes to the top of `GAME_UPDATES`
+     (shown under the settings cog on the title screen).
+  2. Run `python3 tools/stamp.py`. This writes `version.json` and the `?v=` cache-busters in `index.html`.
+- Every page load checks `version.json` and reloads itself into a newer version, so players are moved onto it as soon
+  as they open the game.
+
+## Developer mode
+
+- Settings cog → DEVELOPER MODE. The code is `SPROUT` (not case-sensitive). A wrong code locks it on that device
+  (`localStorage xm_dev_locked`). Then pick a house: it starts Free Roam with `sessionStorage xm_dev` set.
+- The panel (`js/xmas/devmode.js`, the >_ DEV button): PLACES (the house's zones), FAMILY (bring, say a line, fling,
+  line up), FOOD (any food into your hand), TOOLS (walk through walls, speed, slow motion (`window.__timeScale`), stats,
+  quality), SOUNDS, GAMES (start any mode / house / character with dev kept on; Feed Nan's hunger and clock).
+
 ## The family (real people: keep the jokes affectionate)
 
 - The Masons: Tommy, Charli, Karen, Paul. The Cahalanes: Lisa, Michael, Sophie, Jimmy. The Cooks: Joan (Nan). The owner doesn't want a quiz.
@@ -21,7 +40,7 @@ food and level kit), so it looks and moves like Ronnie Simulator. Read `README.m
 ## Where things are
 
 - `index.html`: the page, menus, HUD styles, touch-control styles.
-- `js/xmas/menu.js`: the front end. `?go=1&me=tommy&place=sandybay&mode=roam` skips straight in (modes: hangry, fling, roam).
+- `js/xmas/menu.js`: the front end (and the version, update notes, settings cog and developer-mode code). `?go=1&me=tommy&place=sandybay&mode=roam` skips straight in (modes: hangry, fling, roam).
 - `js/xmas/main.js`: builds the house, the family, food, touch/VR controls, eating, hits, the loop. `window.XM` is the
   debug object (`XM.sim(dt)`, `XM.cast`, `XM.player`, `XM.room`, `XM.mode`, `XM.THREE`).
 - `js/xmas/games.js`: `NanHunger` (Nan's hangry meter, used by every mode), Feed Nan (`hangry`), Fling the Family (`fling`).
